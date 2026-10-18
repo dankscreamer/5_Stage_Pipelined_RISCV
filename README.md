@@ -25,3 +25,44 @@ All arithmetic and bitwise sub-circuits evaluate in parallel as soon as inputs `
 | `4'b0100` | XOR | `a ^ b` |
 
 The `zero` flag asserts high (`1'b1`) whenever `result_alu == 0`, providing a direct comparison output for branch instructions (`BEQ`/`BNE`).
+
+
+**Date:** October 18, 2026  
+**Stage:** Phase 1 — Register File Implementation
+
+## What Was Done Today
+* Designed and implemented the **32x32 Register File (`reg_file.v`)** supporting dual asynchronous read ports and a single synchronous write port.
+* Enforced the RISC-V architectural rule that **register `x0` must permanently read as zero** and be immune to accidental overwrites.
+* Added write-enable safety checks combined with address protection (`rd != 5'b0`) during clock-edge updates.
+
+## How It Works
+1. **Asynchronous Reads:** `read_data1` and `read_data2` evaluate continuously. If the requested address (`rs1` or `rs2`) is `5'b0`, the hardware bypasses the register array and outputs `32'b0` directly.
+2. **Synchronous Writes:** On the positive edge of the clock (`posedge clk`), if `write_enable` is high and `rd` is not `x0`, `write_data` is stored into `register[rd]`.
+
+## Current RTL (`rtl/reg_file.v`)
+
+```verilog
+module reg_file (
+    input  wire        clk,
+    input  wire        write_enable,
+    input  wire [4:0]  rs1,          
+    input  wire [4:0]  rs2,          
+    input  wire [4:0]  rd,          
+    input  wire [31:0] write_data,  
+
+    output wire [31:0] read_data1,
+    output wire [31:0] read_data2  
+);
+
+    reg [31:0] register [31:0];
+
+    assign read_data1 = (rs1 == 5'b0) ? 32'b0 : register[rs1];
+    assign read_data2 = (rs2 == 5'b0) ? 32'b0 : register[rs2];
+
+    always @(posedge clk) begin
+        if (write_enable && (rd != 5'b0)) begin
+            register[rd] <= write_data;
+        end
+    end
+
+endmodule
