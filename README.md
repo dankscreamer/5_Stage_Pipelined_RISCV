@@ -1,6 +1,6 @@
 # 5-Stage Pipelined RISC-V Processor
 
-**Project Date:** October 17–20, 2026  
+**Project Date:** October 17–21, 2026  
 **Architecture:** 5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)  
 **Target Instruction Set:** RV32I Subset
 
@@ -150,6 +150,61 @@ module imm_gen (
             else begin
                 out = {20'hFFFFF, instruction, instruction[11:7]};
             end
+        end
+    end
+
+endmodule
+```
+
+---
+
+## Phase 1 — Immediate Generator Refactoring & Optimization
+
+**Date:** October 21, 2026
+
+1. ###What Was Done Today
+
+- Identified a key structural redundancy while expanding `imm_gen.v` toward B-type (`src == 2'b10`) support: checking `if (instruction[31] == 0)` repeatedly inside every `src` branch was duplicating the exact same sign-bit check across multiple blocks.
+- Refactored `imm_gen.v` to evaluate the MSB (`instruction[31]`) **only once** at the top of the combinational block using a dedicated 20-bit intermediate padding register (`reg [19:0] pad`).
+- Replaced the nested `if-else` trees inside each instruction format branch with clean, single-line concatenations utilizing `pad`.
+- Added the structural branch placeholder for `src == 2'b10` (B-type) and ensured full `else` coverage to prevent latch inference.
+
+### 2. Design Realization & Why It Matters
+
+1. **Architectural Consistency in RISC-V:** Because the RISC-V ISA intentionally places the immediate sign bit at `instruction[31]` across all immediate instruction formats (I, S, B, U, J), the sign-extension decision is completely independent of `src`.
+2. **Factoring Out Common Logic:** By decoupling the **sign-bit evaluation** from the **bit-field extraction**, we eliminate repetitive nested `if-else` blocks. `pad` is computed once (`20'b0` for positive, `20'hFFFFF` for negative) and reused across every format below it.
+3. **Cleaner Hardware & Scalability:** As more instruction formats (like B-type) are added, we no longer need to rewrite the positive/negative `if-else` check for each one—keeping the RTL compact, readable, and aligned with real hardware multiplexing.
+
+### 3. Current RTL (`rtl/imm_gen.v`)
+
+```verilog
+module imm_gen (
+    input  wire [31:0] instruction,
+    input  wire [1:0]  src,
+    output reg  [31:0] out
+);
+
+    reg [19:0] pad;
+
+    always @(*) begin 
+        if (instruction[31] == 1'b0) begin
+            pad = 20'b0;
+        end
+        else begin
+            pad = 20'hFFFFF;
+        end
+
+        if (src == 2'b00) begin
+            out = {pad, instruction};
+        end
+        else if (src == 2'b01) begin
+            out = {pad, instruction, instruction[11:7]};
+        end
+        else if (src == 2'b10) begin
+            out = 32'b0; 
+        end
+        else begin
+            out = 32'b0;
         end
     end
 
