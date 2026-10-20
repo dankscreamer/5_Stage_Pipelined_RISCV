@@ -1,6 +1,6 @@
 # 5-Stage Pipelined RISC-V Processor
 
-**Project Date:** October 17–18, 2026  
+**Project Date:** October 17–20, 2026  
 **Architecture:** 5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)  
 **Target Instruction Set:** RV32I Subset
 
@@ -10,7 +10,7 @@
 
 **Date:** October 17, 2026
 
-### 1. What Was Done Today
+1. ###What Was Done Today
 
 - Selected the **5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)** architecture and mapped the target RV32I subset: `ADD`, `SUB`, `AND`, `OR`, `XOR`, `ADDI`, `LW`, `SW`, `BEQ`, `BNE`.
 - Analyzed RISC-V instruction formats (`opcode`, `rd`, `rs1`, `rs2`, and split immediates).
@@ -44,7 +44,7 @@ The `zero` flag asserts high (`1'b1`) whenever `result_alu == 0`, providing a di
 
 **Date:** October 18, 2026
 
-### 1. What Was Done Today
+1. ###What Was Done Today
 
 - Designed and implemented the **32×32 Register File (`reg_file.v`)** supporting dual asynchronous read ports and a single synchronous write port.
 - Enforced the RISC-V architectural rule that **register `x0` must permanently read as zero** and be immune to accidental overwrites.
@@ -90,3 +90,68 @@ endmodule
 ```
 
 ---
+
+## Phase 1 — Immediate Generator Implementation
+
+**Date:** October 20, 2026
+
+1. ###What Was Done Today
+
+- Designed and implemented the combinational **Immediate Generator (`imm_gen.v`)** in Verilog.
+- Explicitly implemented **only I-type and S-type instruction formats** today (`ADDI`, `LW`, and `SW`).
+- Built custom, step-by-step `if-else` sign-extension logic rather than relying on condensed replication shorthand, making the hardware behavior transparent and easy to trace.
+- Added a default output assignment (`out = 32'b0`) at the top of the combinational block to prevent unintended latch inference.
+
+### 2. Design Choices & How It Works
+
+#### Explicit Sign-Extension (`if-else` Architecture)
+
+Instead of hiding sign-extension behind nested replication operators, the module explicitly inspects the sign bit (`instruction[31]`):
+- **Positive Immediates (`instruction[31] == 0`):** The upper 20 bits are explicitly padded with zeros (`20'b0`) and concatenated with the 12-bit immediate.
+- **Negative Immediates (`instruction[31] == 1`):** To preserve two's complement negative values across 32 bits, the upper 20 bits are explicitly padded with ones (`20'hFFFFF`) and concatenated with the 12-bit immediate.
+
+#### Immediate Source Control Codes (`src`)
+
+| `src` | Format | Target Instructions | Immediate Bit Mapping |
+|:---:|:---:|---|---|
+| `2'b00` | **I-Type** | `ADDI`, `LW` | `instruction[31:20]` (contiguous 12-bit field) |
+| `2'b01` | **S-Type** | `SW` | `{instruction[31:25], instruction[11:7]}` (split 7-bit + 5-bit fields) |
+
+*Note: Only I-type and S-type instructions were implemented today. B-type (`2'b10`) for branches will be added in a subsequent session.*
+
+### 3. Current RTL (`rtl/imm_gen.v`)
+
+```verilog
+module imm_gen (
+    input  wire [31:0] instruction,
+    input  wire [1:0]  src,
+    output reg  [31:0] out
+);
+
+    always @(*) begin 
+        // Default output to prevent unwanted latches
+        out = 32'b0;
+
+        // I-type instructions (e.g., ADDI, LW)
+        if (src == 2'b00) begin 
+            if (instruction[31] == 0) begin
+                out = {20'b0, instruction};
+            end
+            else begin 
+                out = {20'hFFFFF, instruction};
+            end
+        end
+        
+        // S-type instructions (e.g., SW)
+        else if (src == 2'b01) begin
+            if (instruction[31] == 0) begin
+                out = {20'b0, instruction, instruction[11:7]};
+            end
+            else begin
+                out = {20'hFFFFF, instruction, instruction[11:7]};
+            end
+        end
+    end
+
+endmodule
+```
