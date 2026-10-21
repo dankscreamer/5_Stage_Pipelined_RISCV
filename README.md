@@ -91,91 +91,47 @@ endmodule
 
 ---
 
-## Phase 1 — Immediate Generator Implementation
+## Phase 1 — Immediate Generator Implementation & Optimization
 
-**Date:** October 20, 2026
+**Date:** October 20–21, 2026
 
 1. ###What Was Done Today
 
-- Designed and implemented the combinational **Immediate Generator (`imm_gen.v`)** in Verilog.
-- Explicitly implemented **only I-type and S-type instruction formats** today (`ADDI`, `LW`, and `SW`).
-- Built custom, step-by-step `if-else` sign-extension logic rather than relying on condensed replication shorthand, making the hardware behavior transparent and easy to trace.
-- Added a default output assignment (`out = 32'b0`) at the top of the combinational block to prevent unintended latch inference.
+- Designed and implemented the combinational **Immediate Generator (`imm_gen.v`)** supporting I, S, B, and J instruction formats.
+- Refactored the module to evaluate the sign bit (`instruction[31]`) **once** via a shared `pad` register, eliminating redundant checks and keeping hardware clean.
+- Mapped out the bit distributions for all target formats to ensure correct two's complement sign-extension and alignment.
 
-### 2. Design Choices & How It Works
+### 2. Instruction Formats & Bit Distributions
 
-#### Explicit Sign-Extension (`if-else` Architecture)
-
-Instead of hiding sign-extension behind nested replication operators, the module explicitly inspects the sign bit (`instruction[31]`):
-- **Positive Immediates (`instruction[31] == 0`):** The upper 20 bits are explicitly padded with zeros (`20'b0`) and concatenated with the 12-bit immediate.
-- **Negative Immediates (`instruction[31] == 1`):** To preserve two's complement negative values across 32 bits, the upper 20 bits are explicitly padded with ones (`20'hFFFFF`) and concatenated with the 12-bit immediate.
-
-#### Immediate Source Control Codes (`src`)
-
-| `src` | Format | Target Instructions | Immediate Bit Mapping |
-|:---:|:---:|---|---|
-| `2'b00` | **I-Type** | `ADDI`, `LW` | `instruction[31:20]` (contiguous 12-bit field) |
-| `2'b01` | **S-Type** | `SW` | `{instruction[31:25], instruction[11:7]}` (split 7-bit + 5-bit fields) |
-
-*Note: Only I-type and S-type instructions were implemented today. B-type (`2'b10`) for branches will be added in a subsequent session.*
-
-### 3. Current RTL (`rtl/imm_gen.v`)
-
+#### 1. I-Type (`src == 2'b00`) — e.g., `ADDI`, `LW`
+* **Bit Distribution:** Contiguous 12-bit field.
+* **RTL Implementation:**
 ```verilog
-module imm_gen (
-    input  wire [31:0] instruction,
-    input  wire [1:0]  src,
-    output reg  [31:0] out
-);
-
-    always @(*) begin 
-        // Default output to prevent unwanted latches
-        out = 32'b0;
-
-        // I-type instructions (e.g., ADDI, LW)
-        if (src == 2'b00) begin 
-            if (instruction[31] == 0) begin
-                out = {20'b0, instruction};
-            end
-            else begin 
-                out = {20'hFFFFF, instruction};
-            end
-        end
-        
-        // S-type instructions (e.g., SW)
-        else if (src == 2'b01) begin
-            if (instruction[31] == 0) begin
-                out = {20'b0, instruction, instruction[11:7]};
-            end
-            else begin
-                out = {20'hFFFFF, instruction, instruction[11:7]};
-            end
-        end
-    end
-
-endmodule
+out = {pad, instruction};
 ```
 
----
+#### 2. S-Type (`src == 2'b01`) — e.g., `SW`
+* **Bit Distribution:** Split 7-bit upper field (`31:25`) and 5-bit lower field (`11:7`).
+* **RTL Implementation:**
+```verilog
+out = {pad, instruction, instruction[11:7]};
+```
 
-## Phase 1 — Immediate Generator Refactoring & Optimization
+#### 3. B-Type (`src == 2'b10`) — e.g., `BEQ`, `BNE`
+* **Bit Distribution:** 13-bit offset requiring a 19-bit pad (`pad[18:0]`), with bit 0 hardwired to `1'b0`.
+* **RTL Implementation:**
+```verilog
+out = {pad[18:0], instruction[31], instruction[7], instruction, instruction[11:8], 1'b0};
+```
 
-**Date:** October 21, 2026
+#### 4. J-Type (`src == 2'b11`) — e.g., `JAL`
+* **Bit Distribution:** 21-bit offset requiring an 11-bit pad (`pad[10:0]`), with bit 0 hardwired to `1'b0`.
+* **RTL Implementation:**
+```verilog
+out = {pad[10:0], instruction[31], instruction, instruction[20], instruction, 1'b0};
+```
 
-1. ###What Was Done Today
-
-- Identified a key structural redundancy while expanding `imm_gen.v` toward B-type (`src == 2'b10`) support: checking `if (instruction[31] == 0)` repeatedly inside every `src` branch was duplicating the exact same sign-bit check across multiple blocks.
-- Refactored `imm_gen.v` to evaluate the MSB (`instruction[31]`) **only once** at the top of the combinational block using a dedicated 20-bit intermediate padding register (`reg [19:0] pad`).
-- Replaced the nested `if-else` trees inside each instruction format branch with clean, single-line concatenations utilizing `pad`.
-- Added the structural branch placeholder for `src == 2'b10` (B-type) and ensured full `else` coverage to prevent latch inference.
-
-### 2. Design Realization & Why It Matters
-
-1. **Architectural Consistency in RISC-V:** Because the RISC-V ISA intentionally places the immediate sign bit at `instruction[31]` across all immediate instruction formats (I, S, B, U, J), the sign-extension decision is completely independent of `src`.
-2. **Factoring Out Common Logic:** By decoupling the **sign-bit evaluation** from the **bit-field extraction**, we eliminate repetitive nested `if-else` blocks. `pad` is computed once (`20'b0` for positive, `20'hFFFFF` for negative) and reused across every format below it.
-3. **Cleaner Hardware & Scalability:** As more instruction formats (like B-type) are added, we no longer need to rewrite the positive/negative `if-else` check for each one—keeping the RTL compact, readable, and aligned with real hardware multiplexing.
-
-### 3. Current RTL (`rtl/imm_gen.v`)
+### 3. Complete RTL (`rtl/imm_gen.v`)
 
 ```verilog
 module imm_gen (
@@ -201,7 +157,10 @@ module imm_gen (
             out = {pad, instruction, instruction[11:7]};
         end
         else if (src == 2'b10) begin
-            out = 32'b0; 
+            out = {pad[18:0], instruction[31], instruction[7], instruction, instruction[11:8], 1'b0};
+        end
+        else if (src == 2'b11) begin
+            out = {pad[10:0], instruction[31], instruction, instruction[20], instruction, 1'b0};
         end
         else begin
             out = 32'b0;
