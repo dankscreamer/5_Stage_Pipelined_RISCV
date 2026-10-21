@@ -21,11 +21,14 @@ module imm_gen (
             out = {pad, instruction[31:25], instruction[11:7]};
         end
         else if (src == 2'b10) begin
-            out = 32'b0; 
+            out = {pad[18:0], instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
+        end
+        else if (src == 2'b11) begin
+            out = {pad[10:0], instruction[31], instruction[19:12], instruction[20], instruction[30:21], 1'b0};
         end
         else begin
             out = 32'b0;
         end
     end
 
-endmodule
+endmodule 
