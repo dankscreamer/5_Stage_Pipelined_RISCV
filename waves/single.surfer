@@ -1,0 +1,20 @@
+# Surfer command file. Usage (from the repo root):
+#   surfer build/single_demo_hazards.vcd -c {this file}     or     make wave
+
+divider_add Clock_reset
+variable_add tb_single_cycle.dut.clk
+variable_add tb_single_cycle.dut.reset
+divider_add Fetch
+variable_add tb_single_cycle.dut.pc_current
+variable_add tb_single_cycle.dut.instruction
+divider_add Execute
+variable_add tb_single_cycle.dut.alu_result
+variable_add tb_single_cycle.dut.branch_taken
+variable_add tb_single_cycle.dut.pc_next
+divider_add Memory
+variable_add tb_single_cycle.dut.mem_write
+variable_add tb_single_cycle.dut.mem_read_data
+divider_add Write_back
+variable_add tb_single_cycle.dut.reg_write
+variable_add tb_single_cycle.dut.result
+zoom_fit

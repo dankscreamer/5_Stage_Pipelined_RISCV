@@ -1,0 +1,80 @@
+[*] GTKWave save file. Usage (from the repo root):
+[*]   gtkwave build/pipe_fwd1_demo_hazards.vcd {this file}
+[dumpfile] "build/pipe_fwd1_demo_hazards.vcd"
+[timestart] 0
+[size] 1400 900
+[treeopen] tb_pipeline.
+[treeopen] tb_pipeline.dut.
+@200
+-Clock / reset
+@28
+tb_pipeline.dut.clk
+@28
+tb_pipeline.dut.reset
+@200
+-IF  fetch
+@22
+tb_pipeline.dut.pc_current[31:0]
+@22
+tb_pipeline.dut.instruction[31:0]
+@28
+tb_pipeline.dut.if_pred_taken
+@200
+-ID  decode
+@28
+tb_pipeline.dut.id_valid
+@22
+tb_pipeline.dut.id_pc[31:0]
+@22
+tb_pipeline.dut.id_instr[31:0]
+@28
+tb_pipeline.dut.stall
+@28
+tb_pipeline.dut.id_redirect
+@200
+-EX  execute
+@28
+tb_pipeline.dut.ex_valid
+@22
+tb_pipeline.dut.ex_pc[31:0]
+@22
+tb_pipeline.dut.forward_a[1:0]
+@22
+tb_pipeline.dut.forward_b[1:0]
+@22
+tb_pipeline.dut.ex_operand_a[31:0]
+@22
+tb_pipeline.dut.ex_operand_b[31:0]
+@22
+tb_pipeline.dut.ex_alu_result[31:0]
+@28
+tb_pipeline.dut.branch_taken
+@28
+tb_pipeline.dut.ex_pred_taken
+@28
+tb_pipeline.dut.ex_redirect
+@200
+-MEM memory
+@28
+tb_pipeline.dut.mem_valid
+@22
+tb_pipeline.dut.mem_pc[31:0]
+@22
+tb_pipeline.dut.mem_alu_result[31:0]
+@28
+tb_pipeline.dut.mem_mem_write
+@22
+tb_pipeline.dut.mem_read_data[31:0]
+@200
+-WB  write-back
+@28
+tb_pipeline.dut.wb_valid
+@22
+tb_pipeline.dut.wb_pc[31:0]
+@28
+tb_pipeline.dut.wb_reg_write
+@24
+tb_pipeline.dut.wb_rd[4:0]
+@22
+tb_pipeline.dut.wb_result[31:0]
+[pattern_trace] 0

@@ -687,6 +687,49 @@ make figures                      # all SVG pipeline diagrams and waveforms
 
 ---
 
+## Phase 6 — Architecture Diagrams & Waveform Viewing
+
+**Date:** October 23, 2026
+
+### 1. Block Diagram
+
+![Block diagram of the 5-stage pipelined CPU](figures/block_diagram.svg)
+
+- **IF.** The PC mux picks the next PC. Priority: a misprediction from EX, then the static-prediction target from ID, then the BTB target, then PC + 4. The PC addresses the instruction memory. With `BRANCH_PRED = 2`, the BTB is looked up with the same PC and its prediction bit enters IF/ID with the instruction.
+- **ID.** The control unit decodes the opcode. The register file reads rs1 and rs2; its write-through bypass returns a value written in WB in the same cycle. The immediate generator builds the I/S/B/J immediate. The hazard unit stalls a load-use dependency by holding the PC and IF/ID and inserting a bubble into ID/EX. With `BRANCH_PRED = 1`, the static predictor sends backward branches to `pc + imm`.
+- **EX.** Two forwarding muxes pick each ALU operand: the register value, the EX/MEM result or the MEM/WB result, chosen by the forwarding unit. The ALU computes; `==` and `pc + imm` resolve branches. The branch check compares the outcome with the prediction, and on a mismatch redirects the PC, flushes IF/ID and ID/EX, and updates the BTB.
+- **MEM.** Data memory: synchronous write, read registered into MEM/WB.
+- **WB.** The result mux picks the ALU result or the loaded data and writes it back to the register file.
+- `rd`, `reg_write` and the other control bits travel through the pipeline registers with their instruction.
+
+### 2. State Machine: 2-bit Branch Predictor
+
+![2-bit saturating counter state diagram](figures/predictor_fsm.svg)
+
+Each BTB entry holds a 2-bit saturating counter. A resolved taken branch moves it right (towards `11`), a not-taken branch moves it left (towards `00`), and it saturates at both ends. States `10` and `11` predict taken; `00` and `01` predict not taken. Two wrong outcomes in a row are needed to flip a strong prediction, so a loop's single exit does not cause a misprediction when the loop is entered again. A taken branch with no BTB entry allocates one in `10`. A not-taken branch with no entry allocates nothing, because "no entry" already predicts not taken.
+
+The rest of the CPU has no state machine: control is pure combinational decode, plus the stall, flush and redirect rules in the hazard unit (Phase 3 §3 and Phase 5 §1).
+
+### 3. Waveform Viewing (Surfer or GTKWave)
+
+Every simulation writes a VCD file (`build/pipe_<cpu>_<prog>.vcd`, `build/single_<prog>.vcd`). The `waves/` folder holds ready-made signal lists, grouped by stage (IF, ID, EX, MEM, WB): per-stage PC and valid bits, stall, forward selects, prediction and redirect, and write-back.
+
+```bash
+brew install surfer                                   # GTKWave is no longer available through Homebrew
+make wave PROG=demo_hazards                           # pipelined CPU (CPU=fwd1 | fwd0 | bp1 | bp2)
+make wave-single PROG=demo_hazards                    # single-cycle CPU
+gtkwave build/pipe_fwd1_demo_hazards.vcd waves/pipeline.gtkw   # on a machine with GTKWave
+```
+
+- The Surfer command files were checked by loading them: all 30 pipeline and 11 single-cycle signals load with no errors.
+- The GTKWave save files use the same signal list. Every signal name and bit range was checked against the VCD, but they have not been opened in GTKWave itself.
+- Suggested screenshots for the report, all from `demo_hazards`:
+  - cycles 5–6: forwarding (`forward_a` / `forward_b` non-zero)
+  - cycles 7–8: load-use stall (`stall` = 1 in cycle 7, a bubble in EX in cycle 8)
+  - cycle 10: branch redirect (`ex_redirect` = 1, then ID and EX invalid)
+
+---
+
 ## Remaining Roadmap & Required Modules
 
 - [x] Program counter, control unit, data memory, single-cycle reference CPU
@@ -696,5 +739,6 @@ make figures                      # all SVG pipeline diagrams and waveforms
 - [x] Pipeline timing diagrams and waveforms
 - [x] Synthesis/FPGA results (iCE40 HX8K): area, Fmax, execution time
 - [x] Branch prediction: static (BTFN, in ID) and dynamic (8-entry BTB + 2-bit counters, in IF)
+- [x] Block diagram, predictor state diagram, waveform setups for Surfer and GTKWave
 - [ ] Optional: register the BTB update to shorten the critical path; MEM→MEM store-data forwarding
 - [ ] Optional: run on a physical board (needs a pin constraint file for the specific board)

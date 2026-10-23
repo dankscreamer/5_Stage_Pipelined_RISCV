@@ -1,0 +1,40 @@
+# Surfer command file. Usage (from the repo root):
+#   surfer build/pipe_fwd1_demo_hazards.vcd -c {this file}     or     make wave
+
+divider_add Clock_reset
+variable_add tb_pipeline.dut.clk
+variable_add tb_pipeline.dut.reset
+divider_add IF_fetch
+variable_add tb_pipeline.dut.pc_current
+variable_add tb_pipeline.dut.instruction
+variable_add tb_pipeline.dut.if_pred_taken
+divider_add ID_decode
+variable_add tb_pipeline.dut.id_valid
+variable_add tb_pipeline.dut.id_pc
+variable_add tb_pipeline.dut.id_instr
+variable_add tb_pipeline.dut.stall
+variable_add tb_pipeline.dut.id_redirect
+divider_add EX_execute
+variable_add tb_pipeline.dut.ex_valid
+variable_add tb_pipeline.dut.ex_pc
+variable_add tb_pipeline.dut.forward_a
+variable_add tb_pipeline.dut.forward_b
+variable_add tb_pipeline.dut.ex_operand_a
+variable_add tb_pipeline.dut.ex_operand_b
+variable_add tb_pipeline.dut.ex_alu_result
+variable_add tb_pipeline.dut.branch_taken
+variable_add tb_pipeline.dut.ex_pred_taken
+variable_add tb_pipeline.dut.ex_redirect
+divider_add MEM_memory
+variable_add tb_pipeline.dut.mem_valid
+variable_add tb_pipeline.dut.mem_pc
+variable_add tb_pipeline.dut.mem_alu_result
+variable_add tb_pipeline.dut.mem_mem_write
+variable_add tb_pipeline.dut.mem_read_data
+divider_add WB_write_back
+variable_add tb_pipeline.dut.wb_valid
+variable_add tb_pipeline.dut.wb_pc
+variable_add tb_pipeline.dut.wb_reg_write
+variable_add tb_pipeline.dut.wb_rd
+variable_add tb_pipeline.dut.wb_result
+zoom_fit
