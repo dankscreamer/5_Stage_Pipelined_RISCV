@@ -595,6 +595,98 @@ make figures    # SVG pipeline diagrams and waveforms -> figures/
 
 ---
 
+## Phase 5 — Branch Prediction
+
+**Date:** October 23, 2026
+
+### 1. What Was Done Today
+
+- Added a `BRANCH_PRED` parameter to `pipeline_top.v`, so one RTL builds three pipelines. Branches are still checked in EX in every mode; a wrong guess refetches from the correct PC and costs 2 cycles.
+
+| `BRANCH_PRED` | Scheme | Where it predicts | Cost of a correctly predicted taken branch |
+|:-:|---|---|:-:|
+| 0 | always not-taken (Phases 3–4) | — | 2 cycles |
+| 1 | static BTFN: backward branches taken, forward not taken | ID (`id_pc + imm`, sign bit of imm) | 1 cycle |
+| 2 | dynamic: 8-entry direct-mapped BTB + 2-bit saturating counters (`branch_predictor.v`) | IF (looked up with the current PC) | 0 cycles |
+
+- The predicted direction travels with the instruction (`pred` in IF/ID, `pred_taken` in ID/EX). EX compares it with the real outcome: `ex_redirect = branch_taken != pred_taken`.
+- PC selection priority: misprediction from EX > static redirect from ID > BTB prediction in IF > PC + 4.
+- The hazard unit now takes two redirects. An EX misprediction flushes IF/ID and ID/EX. A static ID redirect flushes only IF/ID, and only fires when ID is not stalled.
+- The BTB allocates an entry only for taken branches, starting at "weakly taken". It is cleared whenever instruction memory is written through the program-load port.
+
+### 2. Verification Added
+
+- `tb_branch_predictor.v`: empty table, allocation, counter hysteresis, tag aliasing, no allocation on a not-taken miss, clear (10 checks). `tb_hazard_unit.v` and `tb_pipeline_regs.v` cover the new redirect and prediction-bit paths.
+- Every program now also runs on the two prediction pipelines: `make test` = 11 unit tests + 14 programs × 5 CPUs (81 results).
+- `tools/randprog.py` now generates **counted loops**, so the random programs contain backward branches. Half of them reload the loop counter from memory before the branch, which forces a load-use stall while the branch sits in ID. `make random`: 300 programs × 5 CPUs = 1500 runs, all passing.
+- Mutation check, four prediction bugs injected one at a time, all caught:
+  - a misprediction always refetching the branch target
+  - a flush not clearing the prediction bit
+  - the BTB learning the wrong target
+  - a static redirect firing during a stall, which drops the branch
+
+  The last one was missed until the stalled-loop-branch case was added to the random generator.
+
+### 3. Results — CPI (all with forwarding)
+
+| Benchmark | Branches | No prediction | Static | Dynamic | Dynamic accuracy |
+|---|--:|--:|--:|--:|--:|
+| `bench_sum_rolled` | 128 | 1.618 | 1.382 | **1.147** | 96.9 % |
+| `bench_sum_unrolled` | 72 | 1.355 | 1.192 | **1.030** | 94.4 % |
+| `bench_memcpy` | 96 | 1.550 | 1.339 | **1.133** | 95.8 % |
+| `bench_loaduse_sched` | 32 | 1.335 | 1.188 | **1.041** | 93.8 % |
+| `fib` | 12 | 1.292 | 1.169 | **1.067** | 83.3 % |
+
+The only mispredictions left are each loop's first taken branch (BTB miss) and its exit. `bench_sum_unrolled` + dynamic prediction reaches CPI 1.030, against an ideal of 1.010 (only the 4 cycles to fill the pipeline). Loop diagrams for all three schemes: `figures/pipeline_sum_loop.svg` (7 cycles per iteration), `figures/pipeline_sum_loop_static.svg` (6) and `figures/pipeline_sum_loop_dynamic.svg` (5).
+
+### 4. Results — Synthesis (iCE40 HX8K, median of 3 seeds)
+
+| Design | Fmax | Logic cells | Flip-flops | Block RAMs |
+|---|--:|--:|--:|--:|
+| Single-cycle | 34.6 MHz | 5253 | 2081 | 2 |
+| Pipelined, forwarding | 54.2 MHz | 1161 | 428 | 8 |
+| Pipelined, no forwarding | 71.5 MHz | 966 | 418 | 8 |
+| Pipelined, forwarding, static prediction | 51.9 MHz | 1306 | 429 | 8 |
+| Pipelined, forwarding, dynamic prediction | 49.2 MHz | 2072 | 706 | 10 |
+
+- **Placement variation.** The no-prediction pipelines are logically unchanged since Phase 4, but now reach 54.2 MHz (was 48.8) and 71.5 MHz (was 66.2). Restructuring the top level changed net names and therefore placement. Treat Fmax differences under about 10 % as noise.
+- Static prediction costs 145 logic cells (an adder and a mux in ID).
+- Dynamic prediction costs 911 logic cells and 2 block RAMs (the BTB target array). Its critical path ends at the BTB update: the branch resolved in EX after forwarding also enables the table write in the same cycle.
+
+### 5. Results — Execution Time (cycles × clock period)
+
+| Benchmark | Single-cycle | Pipelined + fwd | + static | + dynamic | Best vs single-cycle |
+|---|--:|--:|--:|--:|--:|
+| `bench_sum_rolled` | 14.95 µs | 15.46 µs | 13.81 µs | **12.07 µs** | 1.24× |
+| `bench_sum_unrolled` | 11.72 µs | 10.14 µs | 9.33 µs | **8.49 µs** | 1.38× |
+| `bench_memcpy` | 12.59 µs | 12.47 µs | 11.26 µs | **10.04 µs** | 1.25× |
+| `bench_loaduse_sched` | 5.69 µs | 4.85 µs | 4.51 µs | **4.16 µs** | 1.37× |
+| `bench_dependent` (no branches) | 1.76 µs | **1.20 µs** | 1.25 µs | 1.32 µs | 1.47× |
+| `bench_independent` (no branches) | 3.49 µs | 2.31 µs | 2.41 µs | 2.54 µs | 2.00× (no-fwd, 1.75 µs) |
+
+Full tables: [`results/perf.md`](results/perf.md), [`results/synth.md`](results/synth.md).
+
+**Conclusion.**
+- Branch prediction fixes the Phase 4 weakness. With no prediction, loop-heavy code ran *slower* than single-cycle (`bench_sum_rolled` 0.97×). With the dynamic predictor, every loop benchmark is 1.18–1.38× faster than single-cycle.
+- Static prediction gets about half of that gain for a sixth of the extra area (+145 vs +911 logic cells).
+- On straight-line code the extra logic only lowers Fmax, so the plain forwarding pipeline (or no forwarding at all, for hazard-free code) stays fastest.
+
+Next improvements:
+- Register the BTB update, writing it one cycle after resolution, to take the table off the critical path.
+- Forward store data from MEM/WB to MEM, which removes the `lw` → `sw` stall in `bench_memcpy`.
+
+### 6. Commands
+
+```bash
+make test                         # 81 self-checking results, all 5 CPUs
+make random                       # 300 random programs with loops x 5 CPUs
+make trace PROG=bench_sum_rolled CPU=bp2   # cycle-by-cycle trace (CPU = fwd1 | fwd0 | bp1 | bp2)
+make synth && make perf           # synthesis (~8 min) then cycles, CPI and execution time
+make figures                      # all SVG pipeline diagrams and waveforms
+```
+
+---
+
 ## Remaining Roadmap & Required Modules
 
 - [x] Program counter, control unit, data memory, single-cycle reference CPU
@@ -603,5 +695,6 @@ make figures    # SVG pipeline diagrams and waveforms -> figures/
 - [x] Benchmarks and CPI/IPC comparison (single-cycle vs pipelined, with vs without forwarding)
 - [x] Pipeline timing diagrams and waveforms
 - [x] Synthesis/FPGA results (iCE40 HX8K): area, Fmax, execution time
-- [ ] Optional: branch resolution in ID or a simple branch predictor; MEM→MEM store-data forwarding
+- [x] Branch prediction: static (BTFN, in ID) and dynamic (8-entry BTB + 2-bit counters, in IF)
+- [ ] Optional: register the BTB update to shorten the critical path; MEM→MEM store-data forwarding
 - [ ] Optional: run on a physical board (needs a pin constraint file for the specific board)
