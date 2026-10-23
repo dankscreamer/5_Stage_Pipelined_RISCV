@@ -4,8 +4,11 @@
 //   FORWARDING = 1 : only a load in EX needs a stall (its data exists after MEM).
 //   FORWARDING = 0 : any writer in EX or MEM needs a stall. A writer in WB is covered by
 //                    the register file's write-through bypass.
-// Control hazards: branches resolve in EX (predict not-taken). A taken branch flushes the
-// two younger instructions in IF/ID and ID/EX.
+// Control hazards: branches resolve in EX.
+//   ex_redirect (the prediction for the branch in EX was wrong) flushes the two younger
+//   instructions in IF/ID and ID/EX (2-cycle penalty).
+//   id_redirect (static prediction: a branch in ID predicted taken) flushes only the one
+//   instruction in IF/ID (1-cycle penalty).
 module hazard_unit #(
     parameter FORWARDING = 1
 ) (
@@ -20,7 +23,8 @@ module hazard_unit #(
     input  wire       ex_mem_reg_write,
     input  wire [4:0] ex_mem_rd,
 
-    input  wire       branch_taken,
+    input  wire       ex_redirect,
+    input  wire       id_redirect,
 
     output wire       stall,
     output wire       pc_enable,
@@ -39,10 +43,11 @@ module hazard_unit #(
 
     assign stall = FORWARDING ? load_use : raw_stall;
 
-    // A taken branch overrides a stall: the stalled instruction is on the wrong path anyway.
-    assign pc_enable    = ~stall | branch_taken;
+    // An EX redirect overrides a stall: the stalled instruction is on the wrong path anyway.
+    // (id_redirect is only raised when there is no stall.)
+    assign pc_enable    = ~stall | ex_redirect;
     assign if_id_enable = ~stall;
-    assign if_id_flush  = branch_taken;
-    assign id_ex_flush  = branch_taken | stall;
+    assign if_id_flush  = ex_redirect | id_redirect;
+    assign id_ex_flush  = ex_redirect | stall;
 
 endmodule

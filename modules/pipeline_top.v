@@ -2,12 +2,19 @@
 // Same instruction set as single_cycle_top.
 //   FORWARDING = 1 : EX/MEM and MEM/WB results are forwarded to the ALU; only load-use stalls.
 //   FORWARDING = 0 : no forwarding; every RAW hazard stalls in ID (for CPI comparison).
-// Branches are resolved in EX and predicted not-taken (2-cycle penalty when taken).
+// Branches are resolved (checked) in EX. BRANCH_PRED selects how they are predicted:
+//   0 : always not-taken               -> taken branch costs 2 cycles
+//   1 : static BTFN in ID (backward taken, forward not taken; target computed in ID)
+//       -> correctly predicted taken costs 1 cycle, a misprediction 2
+//   2 : dynamic, 8-entry BTB + 2-bit counters looked up in IF (branch_predictor.v)
+//       -> correctly predicted taken costs 0 cycles, a misprediction 2
 module pipeline_top #(
-    parameter IMEM_FILE  = "",
-    parameter IMEM_DEPTH = 256,
-    parameter DMEM_DEPTH = 256,
-    parameter FORWARDING = 1
+    parameter IMEM_FILE   = "",
+    parameter IMEM_DEPTH  = 256,
+    parameter DMEM_DEPTH  = 256,
+    parameter FORWARDING  = 1,
+    parameter BRANCH_PRED = 0,
+    parameter BTB_ENTRIES = 8
 ) (
     input  wire        clk,
     input  wire        reset,
@@ -23,14 +30,23 @@ module pipeline_top #(
     // Hazard control
     // ------------------------------------------------------------------
     wire stall, pc_enable, if_id_enable, if_id_flush, id_ex_flush;
-    wire branch_taken;
+    wire branch_taken;                // the branch in EX is actually taken
     wire [31:0] branch_target;
+    wire ex_redirect;                 // EX found a misprediction: refetch from ex_redirect_pc
+    wire [31:0] ex_redirect_pc;
+    wire id_redirect;                 // static prediction: branch in ID predicted taken
+    wire [31:0] id_branch_target;
 
     // ==================================================================
     // IF
     // ==================================================================
+    wire        if_pred_taken;
+    wire [31:0] if_pred_target;
     wire [31:0] pc_plus4 = pc_current + 32'd4;
-    wire [31:0] pc_next  = branch_taken ? branch_target : pc_plus4;
+    // priority: misprediction in EX > static prediction in ID > BTB prediction in IF > PC + 4
+    wire [31:0] pc_next  = ex_redirect   ? ex_redirect_pc   :
+                           id_redirect   ? id_branch_target :
+                           if_pred_taken ? if_pred_target   : pc_plus4;
 
     pc pc_reg (
         .clk(clk), .reset(reset), .enable(pc_enable),
@@ -42,14 +58,33 @@ module pipeline_top #(
         .read_address(pc_current), .instruction(instruction)
     );
 
+    // resolved-branch feedback from EX (declared here, driven in EX)
+    wire        ex_valid, ex_branch;
+    wire [31:0] ex_pc;
+
+    generate
+        if (BRANCH_PRED == 2) begin : g_btb
+            branch_predictor #(.ENTRIES(BTB_ENTRIES)) bp (
+                .clk(clk), .reset(reset), .clear(imem_we),
+                .lookup_pc(pc_current), .pred_taken(if_pred_taken), .pred_target(if_pred_target),
+                .update_en(ex_branch), .update_pc(ex_pc),
+                .update_taken(branch_taken), .update_target(branch_target)
+            );
+        end
+        else begin : g_no_btb
+            assign if_pred_taken  = 1'b0;
+            assign if_pred_target = 32'b0;
+        end
+    endgenerate
+
     // ---------------- IF/ID ----------------
-    wire        id_valid;
+    wire        id_valid, id_if_pred;
     wire [31:0] id_pc, id_instr;
 
     if_id if_id_reg (
         .clk(clk), .reset(reset), .enable(if_id_enable), .flush(if_id_flush),
-        .pc_in(pc_current), .instr_in(instruction),
-        .valid_out(id_valid), .pc_out(id_pc), .instr_out(id_instr)
+        .pc_in(pc_current), .instr_in(instruction), .pred_in(if_pred_taken),
+        .valid_out(id_valid), .pc_out(id_pc), .instr_out(id_instr), .pred_out(id_if_pred)
     );
 
     // ==================================================================
@@ -95,22 +130,31 @@ module pipeline_top #(
     wire id_uses_rs2 = (id_opcode == 7'b0110011) || (id_opcode == 7'b0100011) ||
                        (id_opcode == 7'b1100011);
 
+    // Branch prediction carried to EX: static BTFN decides here (imm[31] = backward
+    // branch), the BTB decided in IF. Static redirects are taken only when ID advances.
+    wire id_pred_taken = (BRANCH_PRED == 1) ? (id_branch & id_imm[31]) :
+                         (BRANCH_PRED == 2) ? id_if_pred : 1'b0;
+    assign id_branch_target = id_pc + id_imm;
+    assign id_redirect      = (BRANCH_PRED == 1) & id_pred_taken & ~stall;
+
     // ---------------- ID/EX ----------------
-    wire        ex_valid, ex_reg_write, ex_alu_src, ex_mem_write, ex_result_src, ex_branch;
+    wire        ex_reg_write, ex_alu_src, ex_mem_write, ex_result_src, ex_pred_taken;
     wire [1:0]  ex_alu_op;
-    wire [31:0] ex_pc, ex_instr, ex_read_data1, ex_read_data2, ex_imm;
+    wire [31:0] ex_instr, ex_read_data1, ex_read_data2, ex_imm;
     wire [4:0]  ex_rs1, ex_rs2, ex_rd;
 
     id_ex id_ex_reg (
         .clk(clk), .reset(reset), .flush(id_ex_flush),
         .valid_in(id_valid), .pc_in(id_pc), .instr_in(id_instr),
         .reg_write_in(id_reg_write), .alu_src_in(id_alu_src), .mem_write_in(id_mem_write),
-        .result_src_in(id_result_src), .branch_in(id_branch), .alu_op_in(id_alu_op),
+        .result_src_in(id_result_src), .branch_in(id_branch), .pred_taken_in(id_pred_taken),
+        .alu_op_in(id_alu_op),
         .read_data1_in(id_read_data1), .read_data2_in(id_read_data2), .imm_in(id_imm),
         .rs1_in(id_rs1), .rs2_in(id_rs2), .rd_in(id_rd),
         .valid_out(ex_valid), .pc_out(ex_pc), .instr_out(ex_instr),
         .reg_write_out(ex_reg_write), .alu_src_out(ex_alu_src), .mem_write_out(ex_mem_write),
-        .result_src_out(ex_result_src), .branch_out(ex_branch), .alu_op_out(ex_alu_op),
+        .result_src_out(ex_result_src), .branch_out(ex_branch), .pred_taken_out(ex_pred_taken),
+        .alu_op_out(ex_alu_op),
         .read_data1_out(ex_read_data1), .read_data2_out(ex_read_data2), .imm_out(ex_imm),
         .rs1_out(ex_rs1), .rs2_out(ex_rs2), .rd_out(ex_rd)
     );
@@ -159,12 +203,17 @@ module pipeline_top #(
     assign branch_target = ex_pc + ex_imm;
     assign branch_taken  = ex_branch & ((ex_funct3 == 3'b000) ? ex_equal : ~ex_equal);
 
+    // Check the prediction: any disagreement refetches from the correct PC.
+    // (With BRANCH_PRED = 0 the prediction is always not-taken, so this is "branch taken".)
+    assign ex_redirect    = (branch_taken != ex_pred_taken);
+    assign ex_redirect_pc = branch_taken ? branch_target : (ex_pc + 32'd4);
+
     hazard_unit #(.FORWARDING(FORWARDING)) hazard (
         .id_rs1(id_rs1), .id_rs2(id_rs2),
         .id_uses_rs1(id_uses_rs1), .id_uses_rs2(id_uses_rs2),
         .id_ex_reg_write(ex_reg_write), .id_ex_mem_read(ex_result_src), .id_ex_rd(ex_rd),
         .ex_mem_reg_write(mem_reg_write), .ex_mem_rd(mem_rd),
-        .branch_taken(branch_taken),
+        .ex_redirect(ex_redirect), .id_redirect(id_redirect),
         .stall(stall), .pc_enable(pc_enable), .if_id_enable(if_id_enable),
         .if_id_flush(if_id_flush), .id_ex_flush(id_ex_flush)
     );

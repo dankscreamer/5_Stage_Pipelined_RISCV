@@ -1,5 +1,6 @@
 // ID/EX pipeline register. flush = 1 inserts a bubble: valid and every control
 // signal that changes architectural state (reg_write, mem_write, branch) are cleared.
+// pred_taken = the branch prediction made for this instruction (checked in EX).
 module id_ex (
     input  wire        clk,
     input  wire        reset,
@@ -13,6 +14,7 @@ module id_ex (
     input  wire        mem_write_in,
     input  wire        result_src_in,
     input  wire        branch_in,
+    input  wire        pred_taken_in,
     input  wire [1:0]  alu_op_in,
     input  wire [31:0] read_data1_in,
     input  wire [31:0] read_data2_in,
@@ -29,6 +31,7 @@ module id_ex (
     output reg         mem_write_out,
     output reg         result_src_out,
     output reg         branch_out,
+    output reg         pred_taken_out,
     output reg  [1:0]  alu_op_out,
     output reg  [31:0] read_data1_out,
     output reg  [31:0] read_data2_out,
@@ -48,6 +51,7 @@ module id_ex (
             mem_write_out  <= 1'b0;
             result_src_out <= 1'b0;
             branch_out     <= 1'b0;
+            pred_taken_out <= 1'b0;
             alu_op_out     <= 2'b00;
             read_data1_out <= 32'b0;
             read_data2_out <= 32'b0;
@@ -65,6 +69,7 @@ module id_ex (
             mem_write_out  <= mem_write_in;
             result_src_out <= result_src_in;
             branch_out     <= branch_in;
+            pred_taken_out <= pred_taken_in;
             alu_op_out     <= alu_op_in;
             read_data1_out <= read_data1_in;
             read_data2_out <= read_data2_in;
