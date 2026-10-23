@@ -8,7 +8,7 @@ RTL      := $(filter-out $(TOPS),$(wildcard modules/*.v))
 UNITS    := alu alu_control imm_gen reg_file control_unit data_mem pc forwarding_unit hazard_unit pipeline_regs branch_predictor
 PROGRAMS := $(basename $(notdir $(wildcard programs/*.s)))
 
-.PHONY: test unit single pipeline programs random perf synth figures trace clean
+.PHONY: test unit single pipeline programs random perf synth figures trace wave wave-single clean
 
 test: unit single pipeline
 
@@ -66,6 +66,7 @@ PIPE_SIGNALS := $(P).clk $(P).pc_current=IF.pc $(P).id_valid=ID.valid $(P).id_pc
 	$(P).stall $(P).branch_taken $(P).forward_a $(P).forward_b $(P).wb_reg_write $(P).wb_rd $(P).wb_result
 figures: pipeline single
 	@mkdir -p figures
+	$(PYTHON) tools/diagrams.py figures
 	@for f in 1 0; do $(VVP) -n $(BUILD)/tb_pipeline_fwd$$f +prog=$(BUILD)/demo_hazards.hex \
 	  +expected=$(BUILD)/demo_hazards.expected +pipe=$(BUILD)/demo_fwd$$f.pipe +vcd=$(BUILD)/demo_fwd$$f.vcd | grep -q "RESULT: PASS" || exit 1; done
 	@$(VVP) -n $(BUILD)/tb_pipeline_fwd1 +prog=$(BUILD)/bench_sum_rolled.hex \
@@ -108,6 +109,14 @@ PROG ?= alu_basic
 CPU  ?= fwd1
 trace: pipeline
 	@$(VVP) -n $(BUILD)/tb_pipeline_$(CPU) +prog=$(BUILD)/$(PROG).hex +expected=$(BUILD)/$(PROG).expected +trace | grep -v "^VCD"
+
+# ---- open waveforms in a viewer, signals grouped by stage (waves/*.surfer, waves/*.gtkw) ----
+#   make wave PROG=demo_hazards [CPU=fwd1|fwd0|bp1|bp2]     make wave-single PROG=demo_hazards
+#   GTKWave instead of Surfer:  gtkwave build/pipe_fwd1_demo_hazards.vcd waves/pipeline.gtkw
+wave: pipeline
+	surfer $(BUILD)/pipe_$(CPU)_$(PROG).vcd -c waves/pipeline.surfer
+wave-single: single
+	surfer $(BUILD)/single_$(PROG).vcd -c waves/single.surfer
 
 clean:
 	rm -rf $(BUILD)
