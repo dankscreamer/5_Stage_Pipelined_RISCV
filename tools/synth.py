@@ -26,6 +26,10 @@ DESIGNS = {
     "single": ("single_cycle_top", "", "", "Single-cycle"),
     "fwd": ("pipeline_top", "-set FORWARDING 1", "", "Pipelined, forwarding"),
     "nofwd": ("pipeline_top", "-set FORWARDING 0", "", "Pipelined, no forwarding"),
+    "bp1": ("pipeline_top", "-set FORWARDING 1 -set BRANCH_PRED 1", "",
+            "Pipelined, forwarding, static prediction"),
+    "bp2": ("pipeline_top", "-set FORWARDING 1 -set BRANCH_PRED 2", "",
+            "Pipelined, forwarding, dynamic prediction (8-entry BTB)"),
 }
 TOPS = ("modules/single_cycle_top.v", "modules/pipeline_top.v")
 

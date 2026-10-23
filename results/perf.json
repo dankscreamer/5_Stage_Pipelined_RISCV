@@ -4,19 +4,41 @@
    "cycles": 61,
    "instructions": 61,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 65,
    "instructions": 61,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 185,
    "instructions": 61,
    "stalls": 120,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 65,
+   "instructions": 61,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp2": {
+   "cycles": 65,
+   "instructions": 61,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   }
  },
  "bench_independent": {
@@ -24,19 +46,41 @@
    "cycles": 121,
    "instructions": 121,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 125,
    "instructions": 121,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 125,
    "instructions": 121,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 125,
+   "instructions": 121,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp2": {
+   "cycles": 125,
+   "instructions": 121,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   }
  },
  "bench_loaduse": {
@@ -44,19 +88,41 @@
    "cycles": 197,
    "instructions": 197,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 295,
    "instructions": 197,
    "stalls": 32,
-   "flushes": 31
+   "flushes": 31,
+   "branches": 32,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 394,
    "instructions": 197,
    "stalls": 131,
-   "flushes": 31
+   "flushes": 31,
+   "branches": 32,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 266,
+   "instructions": 197,
+   "stalls": 32,
+   "flushes": 1,
+   "branches": 32,
+   "id_redirects": 32
+  },
+  "bp2": {
+   "cycles": 237,
+   "instructions": 197,
+   "stalls": 32,
+   "flushes": 2,
+   "branches": 32,
+   "id_redirects": 0
   }
  },
  "bench_loaduse_sched": {
@@ -64,19 +130,41 @@
    "cycles": 197,
    "instructions": 197,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 263,
    "instructions": 197,
    "stalls": 0,
-   "flushes": 31
+   "flushes": 31,
+   "branches": 32,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 378,
    "instructions": 197,
    "stalls": 115,
-   "flushes": 31
+   "flushes": 31,
+   "branches": 32,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 234,
+   "instructions": 197,
+   "stalls": 0,
+   "flushes": 1,
+   "branches": 32,
+   "id_redirects": 32
+  },
+  "bp2": {
+   "cycles": 205,
+   "instructions": 197,
+   "stalls": 0,
+   "flushes": 2,
+   "branches": 32,
+   "id_redirects": 0
   }
  },
  "bench_memcpy": {
@@ -84,19 +172,41 @@
    "cycles": 436,
    "instructions": 436,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 676,
    "instructions": 436,
    "stalls": 48,
-   "flushes": 94
+   "flushes": 94,
+   "branches": 96,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 1015,
    "instructions": 436,
    "stalls": 387,
-   "flushes": 94
+   "flushes": 94,
+   "branches": 96,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 584,
+   "instructions": 436,
+   "stalls": 48,
+   "flushes": 2,
+   "branches": 96,
+   "id_redirects": 96
+  },
+  "bp2": {
+   "cycles": 494,
+   "instructions": 436,
+   "stalls": 48,
+   "flushes": 4,
+   "branches": 96,
+   "id_redirects": 0
   }
  },
  "bench_sum_rolled": {
@@ -104,19 +214,41 @@
    "cycles": 518,
    "instructions": 518,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 838,
    "instructions": 518,
    "stalls": 64,
-   "flushes": 126
+   "flushes": 126,
+   "branches": 128,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 1160,
    "instructions": 518,
    "stalls": 386,
-   "flushes": 126
+   "flushes": 126,
+   "branches": 128,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 716,
+   "instructions": 518,
+   "stalls": 64,
+   "flushes": 2,
+   "branches": 128,
+   "id_redirects": 128
+  },
+  "bp2": {
+   "cycles": 594,
+   "instructions": 518,
+   "stalls": 64,
+   "flushes": 4,
+   "branches": 128,
+   "id_redirects": 0
   }
  },
  "bench_sum_unrolled": {
@@ -124,19 +256,41 @@
    "cycles": 406,
    "instructions": 406,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 550,
    "instructions": 406,
    "stalls": 0,
-   "flushes": 70
+   "flushes": 70,
+   "branches": 72,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 808,
    "instructions": 406,
    "stalls": 258,
-   "flushes": 70
+   "flushes": 70,
+   "branches": 72,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 484,
+   "instructions": 406,
+   "stalls": 0,
+   "flushes": 2,
+   "branches": 72,
+   "id_redirects": 72
+  },
+  "bp2": {
+   "cycles": 418,
+   "instructions": 406,
+   "stalls": 0,
+   "flushes": 4,
+   "branches": 72,
+   "id_redirects": 0
   }
  },
  "alu_basic": {
@@ -144,19 +298,41 @@
    "cycles": 8,
    "instructions": 8,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 12,
    "instructions": 8,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 14,
    "instructions": 8,
    "stalls": 2,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 12,
+   "instructions": 8,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp2": {
+   "cycles": 12,
+   "instructions": 8,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   }
  },
  "branch_basic": {
@@ -164,19 +340,41 @@
    "cycles": 20,
    "instructions": 20,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 36,
    "instructions": 20,
    "stalls": 0,
-   "flushes": 6
+   "flushes": 6,
+   "branches": 9,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 48,
    "instructions": 20,
    "stalls": 12,
-   "flushes": 6
+   "flushes": 6,
+   "branches": 9,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 34,
+   "instructions": 20,
+   "stalls": 0,
+   "flushes": 3,
+   "branches": 9,
+   "id_redirects": 5
+  },
+  "bp2": {
+   "cycles": 32,
+   "instructions": 20,
+   "stalls": 0,
+   "flushes": 4,
+   "branches": 9,
+   "id_redirects": 0
   }
  },
  "demo_hazards": {
@@ -184,19 +382,41 @@
    "cycles": 8,
    "instructions": 8,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 15,
    "instructions": 8,
    "stalls": 1,
-   "flushes": 1
+   "flushes": 1,
+   "branches": 1,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 22,
    "instructions": 8,
    "stalls": 8,
-   "flushes": 1
+   "flushes": 1,
+   "branches": 1,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 15,
+   "instructions": 8,
+   "stalls": 1,
+   "flushes": 1,
+   "branches": 1,
+   "id_redirects": 0
+  },
+  "bp2": {
+   "cycles": 15,
+   "instructions": 8,
+   "stalls": 1,
+   "flushes": 1,
+   "branches": 1,
+   "id_redirects": 0
   }
  },
  "fib": {
@@ -204,19 +424,41 @@
    "cycles": 89,
    "instructions": 89,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 115,
    "instructions": 89,
    "stalls": 0,
-   "flushes": 11
+   "flushes": 11,
+   "branches": 12,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 151,
    "instructions": 89,
    "stalls": 36,
-   "flushes": 11
+   "flushes": 11,
+   "branches": 12,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 104,
+   "instructions": 89,
+   "stalls": 0,
+   "flushes": 1,
+   "branches": 12,
+   "id_redirects": 12
+  },
+  "bp2": {
+   "cycles": 95,
+   "instructions": 89,
+   "stalls": 0,
+   "flushes": 2,
+   "branches": 12,
+   "id_redirects": 0
   }
  },
  "imm_negative": {
@@ -224,19 +466,41 @@
    "cycles": 12,
    "instructions": 12,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 16,
    "instructions": 12,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 18,
    "instructions": 12,
    "stalls": 2,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 16,
+   "instructions": 12,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp2": {
+   "cycles": 16,
+   "instructions": 12,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   }
  },
  "mem_basic": {
@@ -244,19 +508,41 @@
    "cycles": 14,
    "instructions": 14,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 18,
    "instructions": 14,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 22,
    "instructions": 14,
    "stalls": 4,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 18,
+   "instructions": 14,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
+  },
+  "bp2": {
+   "cycles": 18,
+   "instructions": 14,
+   "stalls": 0,
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   }
  },
  "sum_array": {
@@ -264,19 +550,41 @@
    "cycles": 88,
    "instructions": 88,
    "stalls": 0,
-   "flushes": 0
+   "flushes": 0,
+   "branches": 0,
+   "id_redirects": 0
   },
   "fwd": {
    "cycles": 138,
    "instructions": 88,
    "stalls": 10,
-   "flushes": 18
+   "flushes": 18,
+   "branches": 20,
+   "id_redirects": 0
   },
   "nofwd": {
    "cycles": 189,
    "instructions": 88,
    "stalls": 61,
-   "flushes": 18
+   "flushes": 18,
+   "branches": 20,
+   "id_redirects": 0
+  },
+  "bp1": {
+   "cycles": 124,
+   "instructions": 88,
+   "stalls": 10,
+   "flushes": 2,
+   "branches": 20,
+   "id_redirects": 20
+  },
+  "bp2": {
+   "cycles": 110,
+   "instructions": 88,
+   "stalls": 10,
+   "flushes": 4,
+   "branches": 20,
+   "id_redirects": 0
   }
  }
 }

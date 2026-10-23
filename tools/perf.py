@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Run every program on the three CPUs and write the performance tables.
+"""Run every program on all five CPU configurations and write the performance tables.
 
 Usage:  python3 tools/perf.py BUILD_DIR RESULTS_DIR
 
-Expects BUILD_DIR to contain tb_single_cycle, tb_pipeline_fwd1, tb_pipeline_fwd0 and the
+Expects BUILD_DIR to contain tb_single_cycle and tb_pipeline_{fwd1,fwd0,bp1,bp2} and the
 assembled <prog>.hex / <prog>.expected files (see `make perf`). If RESULTS_DIR/synth.json
 exists (from `make synth`), execution time = cycles x clock period is added.
 """
@@ -13,8 +13,12 @@ import re
 import subprocess
 import sys
 
-CONFIGS = [("single", "tb_single_cycle"), ("fwd", "tb_pipeline_fwd1"), ("nofwd", "tb_pipeline_fwd0")]
-PERF = re.compile(r"forwarding=\d cycles=(\d+) instructions=(\d+) stall_cycles=(\d+) branch_flushes=(\d+)")
+CONFIGS = [("single", "tb_single_cycle"), ("fwd", "tb_pipeline_fwd1"), ("nofwd", "tb_pipeline_fwd0"),
+           ("bp1", "tb_pipeline_bp1"), ("bp2", "tb_pipeline_bp2")]
+LABEL = {"single": "Single-cycle", "fwd": "Pipelined + fwd", "nofwd": "Pipelined, no fwd",
+         "bp1": "+ static prediction", "bp2": "+ dynamic prediction"}
+PERF = re.compile(r"forwarding=\d cycles=(\d+) instructions=(\d+) stall_cycles=(\d+) branch_flushes=(\d+)"
+                  r".*branches=(\d+) id_redirects=(\d+)")
 SINGLE = re.compile(r"cycles=(\d+) instructions=(\d+)")
 
 
@@ -27,10 +31,10 @@ def run(build, sim, prog):
         raise RuntimeError(f"{sim} failed on {prog}:\n{out}")
     m = PERF.search(out)
     if m:
-        c, n, s, f = map(int, m.groups())
-        return {"cycles": c, "instructions": n, "stalls": s, "flushes": f}
+        c, n, s, f, b, r = map(int, m.groups())
+        return {"cycles": c, "instructions": n, "stalls": s, "flushes": f, "branches": b, "id_redirects": r}
     c, n = map(int, SINGLE.search(out).groups())
-    return {"cycles": c, "instructions": n, "stalls": 0, "flushes": 0}
+    return {"cycles": c, "instructions": n, "stalls": 0, "flushes": 0, "branches": 0, "id_redirects": 0}
 
 
 def main():
@@ -59,18 +63,35 @@ def main():
           "",
           "Cycles run from the first instruction fetch to the cycle the last instruction (before `halt`) leaves WB,",
           "so pipelined counts include 4 cycles to fill the pipeline. Single-cycle CPI is 1.000 by construction.",
-          "", "## Cycles and CPI", ""] + rows
+          "", "## Cycles and CPI (no branch prediction: taken branches cost 2 cycles)", ""] + rows
 
-    if synth:
+    md += ["", "## Branch prediction (all with forwarding)", "",
+           "Static = backward taken / forward not taken, decided in ID (correct taken prediction costs 1 cycle).",
+           "Dynamic = 8-entry BTB with 2-bit counters in IF (correct taken prediction costs 0 cycles).",
+           "A misprediction costs 2 cycles in both. Accuracy = branches without a misprediction / branches.", "",
+           "| Program | Branches | No prediction: cycles | CPI | Static: cycles | mispredicts | CPI "
+           "| Dynamic: cycles | mispredicts | accuracy | **CPI** |",
+           "|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|"]
+    for p, d in data.items():
+        n, b = d["single"]["instructions"], d["bp2"]["branches"]
+        f, s1, s2 = d["fwd"], d["bp1"], d["bp2"]
+        acc = f"{100 * (b - s2['flushes']) / b:.1f} %" if b else "–"
+        md.append(f"| `{p}` | {b} | {f['cycles']} | {f['cycles'] / n:.3f} | {s1['cycles']} | {s1['flushes']} "
+                  f"| {s1['cycles'] / n:.3f} | {s2['cycles']} | {s2['flushes']} | {acc} | **{s2['cycles'] / n:.3f}** |")
+
+    cfgs = [c for c, _ in CONFIGS if synth and c in synth["designs"]]  # designs with an Fmax
+    if synth and "single" in cfgs:
         md += ["", "## Execution time (cycles × clock period from `make synth`)", "",
                f"Clock periods at the post-place-and-route Fmax on {synth['device']}: " +
                ", ".join(f"{k} {v['fmax_mhz']:.1f} MHz" for k, v in synth["designs"].items()), "",
-               "| Program | Single-cycle (µs) | Pipelined + fwd (µs) | Pipelined, no fwd (µs) | Speed-up (fwd vs single) |",
-               "|---|--:|--:|--:|--:|"]
+               "| Program | " + " | ".join(f"{LABEL[c]} (µs)" for c in cfgs)
+               + " | Best pipeline vs single-cycle |",
+               "|---|" + "--:|" * (len(cfgs) + 1)]
         for p, d in data.items():
-            t = {cfg: d[cfg]["cycles"] / synth["designs"][cfg]["fmax_mhz"] for cfg, _ in CONFIGS}
-            md.append(f"| `{p}` | {t['single']:.2f} | {t['fwd']:.2f} | {t['nofwd']:.2f} "
-                      f"| **{t['single'] / t['fwd']:.2f}×** |")
+            t = {cfg: d[cfg]["cycles"] / synth["designs"][cfg]["fmax_mhz"] for cfg in cfgs}
+            best = min((c for c in cfgs if c != "single"), key=lambda c: t[c])
+            md.append(f"| `{p}` | " + " | ".join(f"{t[c]:.2f}" for c in cfgs)
+                      + f" | **{t['single'] / t[best]:.2f}×** ({LABEL[best].lstrip('+ ')}) |")
 
     os.makedirs(results, exist_ok=True)
     with open(os.path.join(results, "perf.json"), "w") as f:

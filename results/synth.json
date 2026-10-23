@@ -28,41 +28,79 @@
   },
   "fwd": {
    "description": "Pipelined, forwarding",
-   "fmax_mhz": 48.76383590698242,
+   "fmax_mhz": 54.21523666381836,
    "fmax_all_seeds": [
-    47.42,
-    51.17,
-    48.76
+    54.22,
+    54.76,
+    53.73
    ],
-   "logic_cells": 1157,
-   "luts": 800,
+   "logic_cells": 1161,
+   "luts": 804,
    "flip_flops": 428,
    "carry": 121,
    "bram": 8,
    "critical_path": [
-    "fwd.mem_wb_rd_SB_DFFSR_Q_1_DFFLC.O",
-    "aluctrl.funct3_SB_DFFSR_Q_DFFLC.SR"
+    "dmem.memory.0.0_RAM.RDATA_2",
+    "id_ex_reg.mem_write_out_SB_DFFSR_Q_D_SB_LUT4_O_LC.SR"
    ],
-   "median_log": "build/synth/fwd_seed3.log"
+   "median_log": "build/synth/fwd_seed1.log"
   },
   "nofwd": {
    "description": "Pipelined, no forwarding",
-   "fmax_mhz": 66.2032470703125,
+   "fmax_mhz": 71.50518798828125,
    "fmax_all_seeds": [
-    66.2,
-    67.76,
-    65.74
+    71.02,
+    72.71,
+    71.51
    ],
-   "logic_cells": 969,
-   "luts": 622,
+   "logic_cells": 966,
+   "luts": 619,
    "flip_flops": 418,
    "carry": 121,
    "bram": 8,
    "critical_path": [
-    "rf.register.1.1_RAM.RDATA_3",
-    "rf.register.0.1_RDATA_12_SB_DFFSR_Q_DFFLC.SR"
+    "rf.register.1.0_RAM.RDATA_0",
+    "id_ex_reg.branch_out_SB_DFFSR_Q_DFFLC.SR"
    ],
-   "median_log": "build/synth/nofwd_seed1.log"
+   "median_log": "build/synth/nofwd_seed3.log"
+  },
+  "bp1": {
+   "description": "Pipelined, forwarding, static prediction",
+   "fmax_mhz": 51.85914611816406,
+   "fmax_all_seeds": [
+    52.96,
+    50.05,
+    51.86
+   ],
+   "logic_cells": 1306,
+   "luts": 941,
+   "flip_flops": 429,
+   "carry": 180,
+   "bram": 8,
+   "critical_path": [
+    "dmem.memory.0.1_RAM.RDATA_3",
+    "id_ex_reg.pc_in_SB_DFFESR_Q_8_DFFLC.SR"
+   ],
+   "median_log": "build/synth/bp1_seed3.log"
+  },
+  "bp2": {
+   "description": "Pipelined, forwarding, dynamic prediction (8-entry BTB)",
+   "fmax_mhz": 49.227134704589844,
+   "fmax_all_seeds": [
+    49.19,
+    49.85,
+    49.23
+   ],
+   "logic_cells": 2072,
+   "luts": 1443,
+   "flip_flops": 706,
+   "carry": 151,
+   "bram": 10,
+   "critical_path": [
+    "dmem.memory.0.1_RAM.RDATA_7",
+    "g_btb.bp.tag[3]_SB_DFFE_Q_7_DFFLC.CEN"
+   ],
+   "median_log": "build/synth/bp2_seed3.log"
   }
  }
 }

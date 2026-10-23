@@ -1,6 +1,6 @@
 <svg xmlns='http://www.w3.org/2000/svg' width='1016' height='518' viewBox='0 0 1016 518'>
 <rect width='100%' height='100%' fill='white'/>
-<text x='10' y='22' font-size='15' text-anchor='start' fill='#212529' font-weight='bold' font-family='Menlo, Consolas, monospace'>Pipeline diagram: bench_sum_rolled, two loop iterations (load-use stall + taken branch)</text>
+<text x='10' y='22' font-size='15' text-anchor='start' fill='#212529' font-weight='bold' font-family='Menlo, Consolas, monospace'>bench_sum_rolled, no prediction: 7 cycles per iteration (stall + 2-cycle taken branch)</text>
 <text x='283.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>402</text>
 <text x='329.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>403</text>
 <text x='375.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>404</text>

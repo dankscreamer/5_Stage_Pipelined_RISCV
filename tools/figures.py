@@ -43,11 +43,12 @@ def diagram(pipe_path, lst_path, out, title, first=None, last=None):
         for line in f:
             if line.startswith("#"):
                 continue
-            c, if_, id_, ex, mem, wb, stall, taken, fa, fb = line.split()
+            c, if_, id_, ex, mem, wb, stall, taken, fa, fb, *rest = line.split()
+            idr = int(rest[0]) if rest else 0
             c = int(c)
             s_if, pc = if_.split(":")
             seq_pc[int(s_if)] = int(pc, 16)
-            events[c] = (int(stall), int(taken), int(fa), int(fb))
+            events[c] = (int(stall), int(taken), int(fa), int(fb), idr)
             for stage, s in (("IF", s_if), ("ID", id_), ("EX", ex), ("MEM", mem), ("WB", wb)):
                 if int(s):
                     cells.setdefault(int(s), {})[c] = stage
@@ -88,7 +89,7 @@ def diagram(pipe_path, lst_path, out, title, first=None, last=None):
             label = "stall" if stalled and stage == "ID" else stage
             tags = []
             if stage == "EX" and reached_wb:
-                _, _, fa, fb = events[c]
+                _, _, fa, fb, _ = events[c]
                 tags = [f"{op}←{SRC[v]}" for op, v in (("A", fa), ("B", fb)) if v in SRC]
             color = "#6c757d" if stalled or not reached_wb else "#212529"
             if tags:  # stage name on top, forwarding sources underneath, both inside the cell
@@ -103,10 +104,12 @@ def diagram(pipe_path, lst_path, out, title, first=None, last=None):
     # event row
     y = top + rh * len(rows) + 18
     for c in range(first, last + 1):
-        stall, taken, _, _ = events.get(c, (0, 0, 0, 0))
+        stall, taken, _, _, idr = events.get(c, (0, 0, 0, 0, 0))
         x = label_w + cw * (c - first) + cw / 2
         if taken:
             body.append(text(x, y, "flush", 10, "middle", "#b02a37", "bold"))
+        elif idr:
+            body.append(text(x, y, "predict", 10, "middle", "#0d6efd", "bold"))
         elif stall:
             body.append(text(x, y, "stall", 10, "middle", "#6c757d", "bold"))
     body.append(text(10, y + 26, "A←M / B←W: ALU operand forwarded from EX/MEM (M) or MEM/WB (W). "
