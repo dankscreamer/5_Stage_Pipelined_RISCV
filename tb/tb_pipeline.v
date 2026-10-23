@@ -3,13 +3,15 @@
 // with the reference model's .expected file (from tools/rvasm.py). Also measures CPI.
 //   vvp sim +prog=build/x.hex +expected=build/x.expected [+vcd=build/x.vcd] [+trace]
 //           [+pipe=build/x.pipe]   per-cycle stage occupancy for tools/figures.py
-// Compile with -Ptb_pipeline.FORWARDING=0 for the no-forwarding variant.
+// Compile with -Ptb_pipeline.FORWARDING=0 for the no-forwarding variant and
+// -Ptb_pipeline.BRANCH_PRED=1|2 for static / dynamic branch prediction.
 //
 // Cycle counting: cycle 1 is the cycle in which the first instruction is fetched. An
 // instruction retires in the cycle it is in WB. "cycles" is the cycle in which the last
 // real instruction (before halt) retires, so N independent instructions take N + 4 cycles.
 module tb_pipeline;
-    parameter FORWARDING = 1;
+    parameter FORWARDING  = 1;
+    parameter BRANCH_PRED = 0;
 
     localparam HALT = 32'h00000063;
     localparam MAX_CYCLES = 100000;
@@ -19,6 +21,7 @@ module tb_pipeline;
     reg  [31:0] expected [0:287]; // 32 registers + 256 memory words
     reg  [8*256-1:0] prog_file, exp_file, vcd_file;
     integer cycle = 0, retired = 0, last_retire = 0, stalls = 0, flushes = 0, errors = 0, i;
+    integer branches = 0, id_redirects = 0;
     reg done = 0, trace = 0;
 
     // Shadow tracking for pipeline diagrams: every fetched instruction gets a sequence
@@ -30,7 +33,7 @@ module tb_pipeline;
 
     always #5 clk = ~clk;
 
-    pipeline_top #(.FORWARDING(FORWARDING)) dut (
+    pipeline_top #(.FORWARDING(FORWARDING), .BRANCH_PRED(BRANCH_PRED)) dut (
         .clk(clk), .reset(reset),
         .imem_we(1'b0), .imem_waddr(32'b0), .imem_wdata(32'b0), .pc_current(pc), .instruction(instr)
     );
@@ -59,7 +62,7 @@ module tb_pipeline;
             $display("cycle      IF     ID     EX    MEM     WB  event");
         if ($value$plusargs("pipe=%s", pipe_file)) begin
             pipe_fd = $fopen(pipe_file, "w");
-            $fdisplay(pipe_fd, "# cycle if id ex mem wb stall branch_taken fwd_a fwd_b  (sequence numbers, 0 = bubble)");
+            $fdisplay(pipe_fd, "# cycle if id ex mem wb stall ex_redirect fwd_a fwd_b id_redirect  (sequence numbers, 0 = bubble)");
         end
         seq_pc[1] = 32'b0;
 
@@ -73,8 +76,9 @@ module tb_pipeline;
                 show(dut.ex_valid,  dut.ex_pc);
                 show(dut.mem_valid, dut.mem_pc);
                 show(dut.wb_valid,  dut.wb_pc);
-                if (dut.branch_taken) $write("  branch taken -> flush IF/ID, ID/EX");
-                else if (dut.stall)   $write("  stall (hazard on ID instruction)");
+                if (dut.ex_redirect)      $write("  mispredict -> flush IF/ID, ID/EX");
+                else if (dut.id_redirect) $write("  predicted taken in ID -> flush IF/ID");
+                else if (dut.stall)       $write("  stall (hazard on ID instruction)");
                 if (dut.ex_valid && (dut.forward_a != 0 || dut.forward_b != 0))
                     $write("  fwd A=%b B=%b", dut.forward_a, dut.forward_b);
                 $write("\n");
@@ -87,8 +91,9 @@ module tb_pipeline;
                     $display("FAIL: pipeline tracking mismatch at cycle %0d", cycle);
                     errors = errors + 1;
                 end
-                $fdisplay(pipe_fd, "%0d %0d:%0h %0d %0d %0d %0d %0d %0d %0d %0d", cycle, s_if, seq_pc[s_if],
-                          s_id, s_ex, s_mem, s_wb, dut.stall, dut.branch_taken, dut.forward_a, dut.forward_b);
+                $fdisplay(pipe_fd, "%0d %0d:%0h %0d %0d %0d %0d %0d %0d %0d %0d %0d", cycle, s_if, seq_pc[s_if],
+                          s_id, s_ex, s_mem, s_wb, dut.stall, dut.ex_redirect, dut.forward_a, dut.forward_b,
+                          dut.id_redirect);
                 // advance the shadow pipeline exactly as the DUT will at the next clock edge
                 s_wb  = s_mem;
                 s_mem = s_ex;
@@ -100,9 +105,12 @@ module tb_pipeline;
                     seq_pc[s_if] = dut.pc_next;
                 end
             end
-            if (dut.branch_taken) begin
-                if (dut.ex_instr !== HALT) flushes = flushes + 1; // halt jumps to itself
+            // the halt (a branch to itself) is not counted as a branch
+            if (dut.ex_branch && dut.ex_instr !== HALT) branches = branches + 1;
+            if (dut.ex_redirect) begin
+                if (dut.ex_instr !== HALT) flushes = flushes + 1;
             end
+            else if (dut.id_redirect)  id_redirects = id_redirects + 1;
             else if (dut.stall)        stalls  = stalls + 1;
             if (dut.wb_valid) begin
                 if (dut.wb_instr === HALT) begin
@@ -133,11 +141,13 @@ module tb_pipeline;
                 errors = errors + 1;
             end
         end
-        $display("  PERF forwarding=%0d cycles=%0d instructions=%0d stall_cycles=%0d branch_flushes=%0d CPI=%0.3f IPC=%0.3f",
+        // branch_flushes = 2-cycle redirects from EX (taken branches when BRANCH_PRED = 0,
+        // mispredictions otherwise); id_redirects = 1-cycle static-prediction redirects
+        $display("  PERF forwarding=%0d cycles=%0d instructions=%0d stall_cycles=%0d branch_flushes=%0d CPI=%0.3f IPC=%0.3f branch_pred=%0d branches=%0d id_redirects=%0d",
                  FORWARDING, last_retire, retired, stalls, flushes,
-                 1.0 * last_retire / retired, 1.0 * retired / last_retire);
-        if (errors == 0) $display("RESULT: PASS tb_pipeline(fwd=%0d) %0s", FORWARDING, prog_file);
-        else             $display("RESULT: FAIL tb_pipeline(fwd=%0d) %0s (%0d errors)", FORWARDING, prog_file, errors);
+                 1.0 * last_retire / retired, 1.0 * retired / last_retire, BRANCH_PRED, branches, id_redirects);
+        if (errors == 0) $display("RESULT: PASS tb_pipeline(fwd=%0d,bp=%0d) %0s", FORWARDING, BRANCH_PRED, prog_file);
+        else             $display("RESULT: FAIL tb_pipeline(fwd=%0d,bp=%0d) %0s (%0d errors)", FORWARDING, BRANCH_PRED, prog_file, errors);
         $finish;
     end
 endmodule

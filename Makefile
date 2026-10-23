@@ -5,7 +5,7 @@ PYTHON   ?= python3
 BUILD    := build
 TOPS     := modules/single_cycle_top.v modules/pipeline_top.v
 RTL      := $(filter-out $(TOPS),$(wildcard modules/*.v))
-UNITS    := alu alu_control imm_gen reg_file control_unit data_mem pc forwarding_unit hazard_unit pipeline_regs
+UNITS    := alu alu_control imm_gen reg_file control_unit data_mem pc forwarding_unit hazard_unit pipeline_regs branch_predictor
 PROGRAMS := $(basename $(notdir $(wildcard programs/*.s)))
 
 .PHONY: test unit single pipeline programs random perf synth figures trace clean
@@ -37,12 +37,15 @@ single: programs
 	  echo "$$out" | grep -q "RESULT: PASS" || fail=1; \
 	done; exit $$fail
 
-# ---- pipelined CPU, with and without forwarding, same programs and expected state ----
+# ---- pipelined CPU: forwarding on/off (no prediction) + static (bp1) and dynamic (bp2)
+#      branch prediction with forwarding; same programs and expected state ----
 pipeline: programs
 	@$(IVERILOG) -g2005 -Wall -Wno-timescale -o $(BUILD)/tb_pipeline_fwd1 tb/tb_pipeline.v $(RTL) modules/pipeline_top.v
 	@$(IVERILOG) -g2005 -Wall -Wno-timescale -Ptb_pipeline.FORWARDING=0 -o $(BUILD)/tb_pipeline_fwd0 tb/tb_pipeline.v $(RTL) modules/pipeline_top.v
-	@fail=0; for f in 1 0; do for p in $(PROGRAMS); do \
-	  out=$$($(VVP) -n $(BUILD)/tb_pipeline_fwd$$f +prog=$(BUILD)/$$p.hex +expected=$(BUILD)/$$p.expected +vcd=$(BUILD)/pipe_fwd$${f}_$$p.vcd); \
+	@$(IVERILOG) -g2005 -Wall -Wno-timescale -Ptb_pipeline.BRANCH_PRED=1 -o $(BUILD)/tb_pipeline_bp1 tb/tb_pipeline.v $(RTL) modules/pipeline_top.v
+	@$(IVERILOG) -g2005 -Wall -Wno-timescale -Ptb_pipeline.BRANCH_PRED=2 -o $(BUILD)/tb_pipeline_bp2 tb/tb_pipeline.v $(RTL) modules/pipeline_top.v
+	@fail=0; for f in fwd1 fwd0 bp1 bp2; do for p in $(PROGRAMS); do \
+	  out=$$($(VVP) -n $(BUILD)/tb_pipeline_$$f +prog=$(BUILD)/$$p.hex +expected=$(BUILD)/$$p.expected +vcd=$(BUILD)/pipe_$${f}_$$p.vcd); \
 	  echo "$$out" | grep -E "RESULT|FAIL|PERF"; \
 	  echo "$$out" | grep -q "RESULT: PASS" || fail=1; \
 	done; done; exit $$fail
@@ -67,6 +70,8 @@ figures: pipeline single
 	  +expected=$(BUILD)/demo_hazards.expected +pipe=$(BUILD)/demo_fwd$$f.pipe +vcd=$(BUILD)/demo_fwd$$f.vcd | grep -q "RESULT: PASS" || exit 1; done
 	@$(VVP) -n $(BUILD)/tb_pipeline_fwd1 +prog=$(BUILD)/bench_sum_rolled.hex \
 	  +expected=$(BUILD)/bench_sum_rolled.expected +pipe=$(BUILD)/sum_rolled.pipe | grep -q "RESULT: PASS"
+	@for v in bp1 bp2; do $(VVP) -n $(BUILD)/tb_pipeline_$$v +prog=$(BUILD)/bench_sum_rolled.hex \
+	  +expected=$(BUILD)/bench_sum_rolled.expected +pipe=$(BUILD)/sum_rolled_$$v.pipe | grep -q "RESULT: PASS" || exit 1; done
 	@$(VVP) -n $(BUILD)/tb_single_cycle +prog=$(BUILD)/demo_hazards.hex \
 	  +expected=$(BUILD)/demo_hazards.expected +vcd=$(BUILD)/demo_single.vcd | grep -q "RESULT: PASS"
 	$(PYTHON) tools/figures.py diagram $(BUILD)/demo_fwd1.pipe $(BUILD)/demo_hazards.lst figures/pipeline_demo_fwd.svg \
@@ -74,7 +79,11 @@ figures: pipeline single
 	$(PYTHON) tools/figures.py diagram $(BUILD)/demo_fwd0.pipe $(BUILD)/demo_hazards.lst figures/pipeline_demo_nofwd.svg \
 	  "Pipeline diagram: demo_hazards, without forwarding (20 cycles)"
 	$(PYTHON) tools/figures.py diagram $(BUILD)/sum_rolled.pipe $(BUILD)/bench_sum_rolled.lst figures/pipeline_sum_loop.svg \
-	  "Pipeline diagram: bench_sum_rolled, two loop iterations (load-use stall + taken branch)" 402 417
+	  "bench_sum_rolled, no prediction: 7 cycles per iteration (stall + 2-cycle taken branch)" 402 417
+	$(PYTHON) tools/figures.py diagram $(BUILD)/sum_rolled_bp1.pipe $(BUILD)/bench_sum_rolled.lst figures/pipeline_sum_loop_static.svg \
+	  "bench_sum_rolled, static prediction: 6 cycles per iteration (taken branch redirected in ID)" 339 354
+	$(PYTHON) tools/figures.py diagram $(BUILD)/sum_rolled_bp2.pipe $(BUILD)/bench_sum_rolled.lst figures/pipeline_sum_loop_dynamic.svg \
+	  "bench_sum_rolled, dynamic prediction (BTB): 5 cycles per iteration (branch costs nothing)" 278 293
 	$(PYTHON) tools/figures.py wave $(BUILD)/demo_fwd1.vcd figures/wave_demo_fwd.svg \
 	  "Waveform: pipelined CPU (forwarding), demo_hazards" 1 16 $(PIPE_SIGNALS)
 	$(PYTHON) tools/figures.py wave $(BUILD)/demo_single.vcd figures/wave_demo_single.svg \
@@ -88,17 +97,17 @@ random: pipeline single
 	@$(PYTHON) tools/randprog.py $(BUILD)/random $(NRAND) 60 $(SEED)
 	@fail=0; n=0; for s in $(BUILD)/random/*.s; do \
 	  p=$${s%.s}; $(PYTHON) tools/rvasm.py $$s $(BUILD)/random > /dev/null || exit 1; \
-	  for sim in tb_single_cycle tb_pipeline_fwd1 tb_pipeline_fwd0; do \
+	  for sim in tb_single_cycle tb_pipeline_fwd1 tb_pipeline_fwd0 tb_pipeline_bp1 tb_pipeline_bp2; do \
 	    out=$$($(VVP) -n $(BUILD)/$$sim +prog=$$p.hex +expected=$$p.expected); n=$$((n+1)); \
 	    echo "$$out" | grep -q "RESULT: PASS" || { echo "$$out" | grep -E "FAIL"; echo "^ $$sim $$s"; fail=1; }; \
 	  done; \
 	done; echo "random: $$n runs, $$([ $$fail = 0 ] && echo all PASS || echo FAILURES)"; exit $$fail
 
-# ---- cycle-by-cycle pipeline diagram: make trace PROG=fib [FWD=0] ----
+# ---- cycle-by-cycle pipeline diagram: make trace PROG=fib [CPU=fwd1|fwd0|bp1|bp2] ----
 PROG ?= alu_basic
-FWD  ?= 1
+CPU  ?= fwd1
 trace: pipeline
-	@$(VVP) -n $(BUILD)/tb_pipeline_fwd$(FWD) +prog=$(BUILD)/$(PROG).hex +expected=$(BUILD)/$(PROG).expected +trace | grep -v "^VCD"
+	@$(VVP) -n $(BUILD)/tb_pipeline_$(CPU) +prog=$(BUILD)/$(PROG).hex +expected=$(BUILD)/$(PROG).expected +trace | grep -v "^VCD"
 
 clean:
 	rm -rf $(BUILD)
