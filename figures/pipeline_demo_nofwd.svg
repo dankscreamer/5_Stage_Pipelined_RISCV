@@ -1,0 +1,179 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1338' height='398' viewBox='0 0 1338 398'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='10' y='22' font-size='15' text-anchor='start' fill='#212529' font-weight='bold' font-family='Menlo, Consolas, monospace'>Pipeline diagram: demo_hazards, without forwarding (20 cycles)</text>
+<text x='283.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>1</text>
+<text x='329.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>2</text>
+<text x='375.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>3</text>
+<text x='421.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>4</text>
+<text x='467.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>5</text>
+<text x='513.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>6</text>
+<text x='559.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>7</text>
+<text x='605.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>8</text>
+<text x='651.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>9</text>
+<text x='697.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>10</text>
+<text x='743.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>11</text>
+<text x='789.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>12</text>
+<text x='835.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>13</text>
+<text x='881.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>14</text>
+<text x='927.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>15</text>
+<text x='973.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>16</text>
+<text x='1019.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>17</text>
+<text x='1065.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>18</text>
+<text x='1111.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>19</text>
+<text x='1157.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>20</text>
+<text x='1203.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>21</text>
+<text x='1249.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>22</text>
+<text x='1295.0' y='56' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>23</text>
+<text x='10' y='80' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>  0  addi x1, x0, 5</text>
+<rect x='261' y='66' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='283.0' y='80' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='307' y='66' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='329.0' y='80' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='353' y='66' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='375.0' y='80' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='399' y='66' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='421.0' y='80' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='445' y='66' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='467.0' y='80' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='104' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>  4  addi x2, x0, 7</text>
+<rect x='307' y='90' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='329.0' y='104' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='353' y='90' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='375.0' y='104' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='399' y='90' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='421.0' y='104' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='445' y='90' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='467.0' y='104' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='491' y='90' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='513.0' y='104' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='128' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>  8  add x3, x1, x2</text>
+<rect x='353' y='114' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='375.0' y='128' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='399' y='114' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='421.0' y='128' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='445' y='114' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='467.0' y='128' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='491' y='114' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='513.0' y='128' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='537' y='114' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='559.0' y='128' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='583' y='114' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='605.0' y='128' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='629' y='114' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='651.0' y='128' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='152' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>  c  sw x3, 0(x0)</text>
+<rect x='399' y='138' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='421.0' y='152' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='445' y='138' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='467.0' y='152' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='491' y='138' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='513.0' y='152' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='537' y='138' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='559.0' y='152' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='583' y='138' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='605.0' y='152' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='629' y='138' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='651.0' y='152' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='675' y='138' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='697.0' y='152' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='721' y='138' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='743.0' y='152' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='767' y='138' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='789.0' y='152' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='176' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'> 10  lw x4, 0(x0)</text>
+<rect x='537' y='162' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='559.0' y='176' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='583' y='162' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='605.0' y='176' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='629' y='162' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='651.0' y='176' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='675' y='162' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='697.0' y='176' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='721' y='162' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='743.0' y='176' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='767' y='162' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='789.0' y='176' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='813' y='162' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='835.0' y='176' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='200' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'> 14  add x5, x4, x1</text>
+<rect x='675' y='186' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='697.0' y='200' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='721' y='186' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='743.0' y='200' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='767' y='186' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='789.0' y='200' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='813' y='186' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='835.0' y='200' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='859' y='186' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='881.0' y='200' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='905' y='186' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='927.0' y='200' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='951' y='186' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='973.0' y='200' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='224' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'> 18  beq x5, x5, skip</text>
+<rect x='721' y='210' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='743.0' y='224' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='767' y='210' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='789.0' y='224' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='813' y='210' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='835.0' y='224' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='859' y='210' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='881.0' y='224' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='905' y='210' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='927.0' y='224' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='951' y='210' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='973.0' y='224' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>stall</text>
+<rect x='997' y='210' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1019.0' y='224' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='1043' y='210' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1065.0' y='224' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='1089' y='210' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1111.0' y='224' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='248' font-size='12' text-anchor='start' fill='#adb5bd' font-weight='normal' font-family='Menlo, Consolas, monospace'> 1c  addi x6, x0, 1</text>
+<rect x='859' y='234' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='881.0' y='248' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='905' y='234' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='927.0' y='248' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='951' y='234' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='973.0' y='248' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='997' y='234' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1019.0' y='248' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<text x='1046' y='248' font-size='11' text-anchor='start' fill='#b02a37' font-weight='normal' font-family='Menlo, Consolas, monospace'>✕ flushed</text>
+<text x='10' y='272' font-size='12' text-anchor='start' fill='#adb5bd' font-weight='normal' font-family='Menlo, Consolas, monospace'> 20  addi x7, x0, 1</text>
+<rect x='997' y='258' width='44' height='20' rx='3' fill='#e9ecef' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1019.0' y='272' font-size='11' text-anchor='middle' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<text x='1046' y='272' font-size='11' text-anchor='start' fill='#b02a37' font-weight='normal' font-family='Menlo, Consolas, monospace'>✕ flushed</text>
+<text x='10' y='296' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'> 24  sub x8, x5, x3</text>
+<rect x='1043' y='282' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1065.0' y='296' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='1089' y='282' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1111.0' y='296' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='1135' y='282' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1157.0' y='296' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='1181' y='282' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1203.0' y='296' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='1227' y='282' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1249.0' y='296' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='10' y='320' font-size='12' text-anchor='start' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'> 28  halt</text>
+<rect x='1089' y='306' width='44' height='20' rx='3' fill='#cfe2ff' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1111.0' y='320' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>IF</text>
+<rect x='1135' y='306' width='44' height='20' rx='3' fill='#d1e7dd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1157.0' y='320' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>ID</text>
+<rect x='1181' y='306' width='44' height='20' rx='3' fill='#fff3cd' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1203.0' y='320' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>EX</text>
+<rect x='1227' y='306' width='44' height='20' rx='3' fill='#f8d7da' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1249.0' y='320' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>MEM</text>
+<rect x='1273' y='306' width='44' height='20' rx='3' fill='#e2d9f3' stroke='#adb5bd' stroke-width='0.5'/>
+<text x='1295.0' y='320' font-size='11' text-anchor='middle' fill='#212529' font-weight='normal' font-family='Menlo, Consolas, monospace'>WB</text>
+<text x='421.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='467.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='559.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='605.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='743.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='789.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='881.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='927.0' y='346' font-size='10' text-anchor='middle' fill='#6c757d' font-weight='bold' font-family='Menlo, Consolas, monospace'>stall</text>
+<text x='1019.0' y='346' font-size='10' text-anchor='middle' fill='#b02a37' font-weight='bold' font-family='Menlo, Consolas, monospace'>flush</text>
+<text x='1203.0' y='346' font-size='10' text-anchor='middle' fill='#b02a37' font-weight='bold' font-family='Menlo, Consolas, monospace'>flush</text>
+<text x='10' y='372' font-size='10' text-anchor='start' fill='#6c757d' font-weight='normal' font-family='Menlo, Consolas, monospace'>A←M / B←W: ALU operand forwarded from EX/MEM (M) or MEM/WB (W). Grey: stalled or flushed.</text>
+</svg>

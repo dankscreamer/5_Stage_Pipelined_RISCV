@@ -1,0 +1,68 @@
+{
+ "device": "iCE40 HX8K (ct256)",
+ "imem_dmem_words": 32,
+ "seeds": 3,
+ "tools": {
+  "yosys": "Yosys 0.70+post (git sha1 0c11ea098be065e585a90a06e7b7da49936cf231, Release, AppleClang clang++ 17.0.0.17000604)",
+  "nextpnr": "nextpnr-ice40 0.11.1_2"
+ },
+ "designs": {
+  "single": {
+   "description": "Single-cycle",
+   "fmax_mhz": 34.6428337097168,
+   "fmax_all_seeds": [
+    34.64,
+    35.14,
+    34.32
+   ],
+   "logic_cells": 5253,
+   "luts": 3199,
+   "flip_flops": 2081,
+   "carry": 121,
+   "bram": 2,
+   "critical_path": [
+    "imem.memory.0.1_RAM.RDATA_2",
+    "rf.register[20]_SB_DFFE_Q_29_DFFLC.I0"
+   ],
+   "median_log": "build/synth/single_seed1.log"
+  },
+  "fwd": {
+   "description": "Pipelined, forwarding",
+   "fmax_mhz": 48.76383590698242,
+   "fmax_all_seeds": [
+    47.42,
+    51.17,
+    48.76
+   ],
+   "logic_cells": 1157,
+   "luts": 800,
+   "flip_flops": 428,
+   "carry": 121,
+   "bram": 8,
+   "critical_path": [
+    "fwd.mem_wb_rd_SB_DFFSR_Q_1_DFFLC.O",
+    "aluctrl.funct3_SB_DFFSR_Q_DFFLC.SR"
+   ],
+   "median_log": "build/synth/fwd_seed3.log"
+  },
+  "nofwd": {
+   "description": "Pipelined, no forwarding",
+   "fmax_mhz": 66.2032470703125,
+   "fmax_all_seeds": [
+    66.2,
+    67.76,
+    65.74
+   ],
+   "logic_cells": 969,
+   "luts": 622,
+   "flip_flops": 418,
+   "carry": 121,
+   "bram": 8,
+   "critical_path": [
+    "rf.register.1.1_RAM.RDATA_3",
+    "rf.register.0.1_RDATA_12_SB_DFFSR_Q_DFFLC.SR"
+   ],
+   "median_log": "build/synth/nofwd_seed1.log"
+  }
+ }
+}

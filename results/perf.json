@@ -1,0 +1,282 @@
+{
+ "bench_dependent": {
+  "single": {
+   "cycles": 61,
+   "instructions": 61,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 65,
+   "instructions": 61,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "nofwd": {
+   "cycles": 185,
+   "instructions": 61,
+   "stalls": 120,
+   "flushes": 0
+  }
+ },
+ "bench_independent": {
+  "single": {
+   "cycles": 121,
+   "instructions": 121,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 125,
+   "instructions": 121,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "nofwd": {
+   "cycles": 125,
+   "instructions": 121,
+   "stalls": 0,
+   "flushes": 0
+  }
+ },
+ "bench_loaduse": {
+  "single": {
+   "cycles": 197,
+   "instructions": 197,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 295,
+   "instructions": 197,
+   "stalls": 32,
+   "flushes": 31
+  },
+  "nofwd": {
+   "cycles": 394,
+   "instructions": 197,
+   "stalls": 131,
+   "flushes": 31
+  }
+ },
+ "bench_loaduse_sched": {
+  "single": {
+   "cycles": 197,
+   "instructions": 197,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 263,
+   "instructions": 197,
+   "stalls": 0,
+   "flushes": 31
+  },
+  "nofwd": {
+   "cycles": 378,
+   "instructions": 197,
+   "stalls": 115,
+   "flushes": 31
+  }
+ },
+ "bench_memcpy": {
+  "single": {
+   "cycles": 436,
+   "instructions": 436,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 676,
+   "instructions": 436,
+   "stalls": 48,
+   "flushes": 94
+  },
+  "nofwd": {
+   "cycles": 1015,
+   "instructions": 436,
+   "stalls": 387,
+   "flushes": 94
+  }
+ },
+ "bench_sum_rolled": {
+  "single": {
+   "cycles": 518,
+   "instructions": 518,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 838,
+   "instructions": 518,
+   "stalls": 64,
+   "flushes": 126
+  },
+  "nofwd": {
+   "cycles": 1160,
+   "instructions": 518,
+   "stalls": 386,
+   "flushes": 126
+  }
+ },
+ "bench_sum_unrolled": {
+  "single": {
+   "cycles": 406,
+   "instructions": 406,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 550,
+   "instructions": 406,
+   "stalls": 0,
+   "flushes": 70
+  },
+  "nofwd": {
+   "cycles": 808,
+   "instructions": 406,
+   "stalls": 258,
+   "flushes": 70
+  }
+ },
+ "alu_basic": {
+  "single": {
+   "cycles": 8,
+   "instructions": 8,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 12,
+   "instructions": 8,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "nofwd": {
+   "cycles": 14,
+   "instructions": 8,
+   "stalls": 2,
+   "flushes": 0
+  }
+ },
+ "branch_basic": {
+  "single": {
+   "cycles": 20,
+   "instructions": 20,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 36,
+   "instructions": 20,
+   "stalls": 0,
+   "flushes": 6
+  },
+  "nofwd": {
+   "cycles": 48,
+   "instructions": 20,
+   "stalls": 12,
+   "flushes": 6
+  }
+ },
+ "demo_hazards": {
+  "single": {
+   "cycles": 8,
+   "instructions": 8,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 15,
+   "instructions": 8,
+   "stalls": 1,
+   "flushes": 1
+  },
+  "nofwd": {
+   "cycles": 22,
+   "instructions": 8,
+   "stalls": 8,
+   "flushes": 1
+  }
+ },
+ "fib": {
+  "single": {
+   "cycles": 89,
+   "instructions": 89,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 115,
+   "instructions": 89,
+   "stalls": 0,
+   "flushes": 11
+  },
+  "nofwd": {
+   "cycles": 151,
+   "instructions": 89,
+   "stalls": 36,
+   "flushes": 11
+  }
+ },
+ "imm_negative": {
+  "single": {
+   "cycles": 12,
+   "instructions": 12,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 16,
+   "instructions": 12,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "nofwd": {
+   "cycles": 18,
+   "instructions": 12,
+   "stalls": 2,
+   "flushes": 0
+  }
+ },
+ "mem_basic": {
+  "single": {
+   "cycles": 14,
+   "instructions": 14,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 18,
+   "instructions": 14,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "nofwd": {
+   "cycles": 22,
+   "instructions": 14,
+   "stalls": 4,
+   "flushes": 0
+  }
+ },
+ "sum_array": {
+  "single": {
+   "cycles": 88,
+   "instructions": 88,
+   "stalls": 0,
+   "flushes": 0
+  },
+  "fwd": {
+   "cycles": 138,
+   "instructions": 88,
+   "stalls": 10,
+   "flushes": 18
+  },
+  "nofwd": {
+   "cycles": 189,
+   "instructions": 88,
+   "stalls": 61,
+   "flushes": 18
+  }
+ }
+}
