@@ -1,5 +1,5 @@
 module reg_file (
-    input  wire        clk,
+    input  wire         clk,
     input  wire        write_enable,
     input  wire [4:0]  rs1,          
     input  wire [4:0]  rs2,          
