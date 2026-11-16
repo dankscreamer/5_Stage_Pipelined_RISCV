@@ -1,0 +1,5 @@
+# macOS metadata
+.DS_Store
+
+# Icarus Verilog compiled simulation output
+sim.out

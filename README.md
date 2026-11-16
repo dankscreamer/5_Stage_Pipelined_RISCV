@@ -1,703 +1,535 @@
-# 5-Stage Pipelined RISC-V Processor
+# RISC-V Processor Project (Phase I: Single-Cycle Prototype)
 
-**Project Date:** October 17–22, 2026  
-**Architecture:** 5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)  
-**Target Instruction Set:** RV32I Subset
+Welcome to the **RISC-V Processor Project**. This repository contains the complete design, Verilog implementation, and simulation environment for a **32-bit single-cycle RISC-V processor**.
 
----
-
-## Phase 1 — ALU Implementation
-
-**Date:** October 17, 2026
-
-### 1. What Was Done Today
-
-- Selected the **5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)** architecture and mapped the target RV32I subset: `ADD`, `SUB`, `AND`, `OR`, `XOR`, `ADDI`, `LW`, `SW`, `BEQ`, `BNE`.
-- Analyzed RISC-V instruction formats (`opcode`, `rd`, `rs1`, `rs2`, and split immediates).
-- Implemented the 32-bit combinational `ALU_RISCV` module in Verilog.
-
-### 2. Why Start with the ALU?
-
-1. **Zero Dependencies:** It is a pure combinational leaf module requiring no clocks, memory, or pipeline registers.
-2. **Core Engine:** Handles arithmetic/logic (`ADD`, `SUB`, `AND`, `OR`, `XOR`), memory address calculation (`LW`/`SW`), and branch comparisons (`BEQ`/`BNE`).
-3. **Control Anchor:** Defines the 4-bit control codes that the Control Unit will target.
-
-### 3. How It Works
-
-All arithmetic and bitwise sub-circuits evaluate in parallel as soon as inputs `a` and `b` arrive. The 4-bit `control_alu` signal acts as a multiplexer selector to route the chosen operation to `result_alu`.
-
-#### ALU Control Codes
-
-| `control_alu` | Operation | Expression |
-|:---:|---|---|
-| `4'b0000` | AND | `a & b` |
-| `4'b0001` | OR | `a \| b` |
-| `4'b0010` | ADD | `a + b` |
-| `4'b0110` | SUB | `a - b` |
-| `4'b0100` | XOR | `a ^ b` |
-
-The `zero` flag asserts high (`1'b1`) whenever `result_alu == 0`, providing a direct comparison output for branch instructions (`BEQ`/`BNE`).
+This work represents **Phase I** of an ongoing two-phase computer architecture project. The ultimate goal is to build a full **5-Stage Pipelined RISC-V Processor** in Phase II. In this phase, we have designed, implemented, and verified the core single-cycle execution engine.
 
 ---
 
-## Phase 1 — Register File Implementation
-
-**Date:** October 18, 2026
-
-### 1. What Was Done Today
-
-- Designed and implemented the **32×32 Register File (`reg_file.v`)** supporting dual asynchronous read ports and a single synchronous write port.
-- Enforced the RISC-V architectural rule that **register `x0` must permanently read as zero** and be immune to accidental overwrites.
-- Added write-enable safety checks combined with address protection (`rd != 5'b0`) during clock-edge updates.
-
-### 2. How It Works
-
-#### Asynchronous Reads
-
-`read_data1` and `read_data2` evaluate continuously. If the requested address (`rs1` or `rs2`) is `5'b0`, the hardware bypasses the register array and outputs `32'b0` directly.
-
-#### Synchronous Writes
-
-On the positive edge of the clock (`posedge clk`), if `write_enable` is high and `rd` is not `x0`, `write_data` is stored into `register[rd]`.
-
-### 3. Current RTL (`rtl/reg_file.v`)
-
-```verilog
-module reg_file (
-    input  wire        clk,
-    input  wire        write_enable,
-    input  wire [4:0]  rs1,
-    input  wire [4:0]  rs2,
-    input  wire [4:0]  rd,
-    input  wire [31:0] write_data,
-
-    output wire [31:0] read_data1,
-    output wire [31:0] read_data2
-);
-
-    reg [31:0] register [31:0];
-
-    assign read_data1 = (rs1 == 5'b0) ? 32'b0 : register[rs1];
-    assign read_data2 = (rs2 == 5'b0) ? 32'b0 : register[rs2];
-
-    always @(posedge clk) begin
-        if (write_enable && (rd != 5'b0)) begin
-            register[rd] <= write_data;
-        end
-    end
-
-endmodule
-```
+## Table of Contents
+1. [What This Project Is](#1-what-this-project-is)
+2. [Why We Are Building It](#2-why-we-are-building-it)
+3. [What is RISC-V?](#3-what-is-risc-v)
+4. [What Does "Single-Cycle" Mean?](#4-what-does-single-cycle-mean)
+5. [How an Instruction Moves Through the Processor](#5-how-an-instruction-moves-through-the-processor)
+6. [Detailed Explanation of Each Verilog Module](#6-detailed-explanation-of-each-verilog-module)
+7. [How the Control Unit Works](#7-how-the-control-unit-works)
+8. [How the ALU Works](#8-how-the-alu-works)
+9. [How Registers and Memory Work](#9-how-registers-and-memory-work)
+10. [Supported Instructions](#10-supported-instructions)
+11. [How the Test Programs Work](#11-how-the-test-programs-work)
+12. [How to Compile and Run the Simulation](#12-how-to-compile-and-run-the-simulation)
+13. [How to Inspect Waveforms Using Surfer](#13-how-to-inspect-waveforms-using-surfer)
+14. [What We Have Successfully Tested](#14-what-we-have-successfully-tested)
+15. [What is Incomplete (Known Limitations)](#15-what-is-incomplete-known-limitations)
+16. [Future Work: Transition to a 5-Stage Pipeline](#16-future-work-transition-to-a-5-stage-pipeline)
 
 ---
 
-## Phase 1 — Immediate Generator Implementation
+## 1. What This Project Is
 
-**Date:** October 20, 2026
+This project is a hardware implementation of a **32-bit RISC-V processor core** written from scratch in standard Verilog HDL. 
 
-### 1. What Was Done Today
-
-- Designed and implemented the combinational **Immediate Generator (`imm_gen.v`)** in Verilog.
-- Explicitly implemented **only I-type and S-type instruction formats** today (`ADDI`, `LW`, and `SW`).
-- Built custom, step-by-step `if-else` sign-extension logic rather than relying on condensed replication shorthand, making the hardware behavior transparent and easy to trace.
-- Added a default output assignment (`out = 32'b0`) at the top of the combinational block to prevent unintended latch inference.
-
-### 2. Design Choices & How It Works
-
-#### Explicit Sign-Extension (`if-else` Architecture)
-
-Instead of hiding sign-extension behind nested replication operators, the module explicitly inspects the sign bit (`instruction[31]`):
-- **Positive Immediates (`instruction[31] == 0`):** The upper 20 bits are explicitly padded with zeros (`20'b0`) and concatenated with the 12-bit immediate.
-- **Negative Immediates (`instruction[31] == 1`):** To preserve two's complement negative values across 32 bits, the upper 20 bits are explicitly padded with ones (`20'hFFFFF`) and concatenated with the 12-bit immediate.
-
-#### Immediate Source Control Codes (`src`)
-
-| `src` | Format | Target Instructions | Immediate Bit Mapping |
-|:---:|:---:|---|---|
-| `2'b00` | **I-Type** | `ADDI`, `LW` | `instruction[31:20]` (contiguous 12-bit field) |
-| `2'b01` | **S-Type** | `SW` | `{instruction[31:25], instruction[11:7]}` (split 7-bit + 5-bit fields) |
-
-*Note: Only I-type and S-type instructions were implemented today. B-type (`2'b10`) for branches will be added in a subsequent session.*
-
-### 3. Initial RTL (`rtl/imm_gen.v` — v1)
-
-```verilog
-module imm_gen (
-    input  wire [31:0] instruction,
-    input  wire [1:0]  src,
-    output reg  [31:0] out
-);
-
-    always @(*) begin 
-        // Default output to prevent unwanted latches
-        out = 32'b0;
-
-        // I-type instructions (e.g., ADDI, LW)
-        if (src == 2'b00) begin 
-            if (instruction[31] == 0) begin
-                out = {20'b0, instruction};
-            end
-            else begin 
-                out = {20'hFFFFF, instruction};
-            end
-        end
-        
-        // S-type instructions (e.g., SW)
-        else if (src == 2'b01) begin
-            if (instruction[31] == 0) begin
-                out = {20'b0, instruction, instruction[11:7]};
-            end
-            else begin
-                out = {20'hFFFFF, instruction, instruction[11:7]};
-            end
-        end
-    end
-
-endmodule
-```
+Key characteristics of our processor:
+- **Architecture:** RV32I subset (32-bit RISC-V Base Integer Instruction Set).
+- **Execution Style:** Single-Cycle. Each instruction completes its entire journey (fetch, decode, execute, memory, and writeback) within a single clock cycle.
+- **Stage-Aware Organization:** To make upgrading to a 5-stage pipeline easy in Phase II, we modularized the single-cycle design into five logical stage blocks: Fetch (`if_stage`), Decode (`id_stage`), Execute (`ex_stage`), Memory (`mem_stage`), and Writeback (`wb_stage`).
 
 ---
 
-## Phase 1 — Immediate Generator Refactoring & Full Format Expansion
+## 2. Why We Are Building It
 
-**Date:** October 21, 2026
+Building a pipelined processor directly from scratch is notoriously difficult because you must deal with two huge problems at the same time:
+1. **Core Functionality:** Getting the math (ALU), memory access, registers, and branch logic to work correctly.
+2. **Pipelining Hazards:** Handling pipeline registers, data dependencies (hazard forwarding), and branch penalties.
 
-### 1. What Was Done Today
-
-- Identified a key structural redundancy while expanding `imm_gen.v` toward B-type (`src == 2'b10`) and J-type (`src == 2'b11`) support: checking `if (instruction[31] == 0)` repeatedly inside every `src` branch was duplicating the exact same sign-bit check across multiple blocks.
-- Refactored `imm_gen.v` to evaluate the MSB (`instruction[31]`) **only once** at the top of the combinational block using a dedicated 20-bit intermediate padding register (`reg [19:0] pad`).
-- Replaced the nested `if-else` trees inside each instruction format branch with clean, single-line concatenations utilizing `pad` (and sliced subsets `pad[18:0]` and `pad[10:0]`).
-- Completed full bit-distribution support for **I-type, S-type, B-type, and J-type** formats and ensured full `else` coverage to prevent latch inference.
-
-### 2. Design Realization & Why It Matters
-
-1. **Architectural Consistency in RISC-V:** Because the RISC-V ISA intentionally places the immediate sign bit at `instruction[31]` across all immediate instruction formats (I, S, B, U, J), the sign-extension decision is completely independent of `src`.
-2. **Factoring Out Common Logic:** By decoupling the **sign-bit evaluation** from the **bit-field extraction**, we eliminate repetitive nested `if-else` blocks. `pad` is computed once (`20'b0` for positive, `20'hFFFFF` for negative) and reused across every format below it.
-3. **Cleaner Hardware & Scalability:** As more instruction formats are added, we slice the exact number of upper sign-extension bits needed from `pad`, keeping the RTL compact, readable, and aligned with real hardware multiplexing.
-
-### 3. Instruction Formats & Bit Distributions
-
-#### 1. I-Type (`src == 2'b00`) — e.g., `ADDI`, `LW`
-- **Bit Distribution:** Contiguous 12-bit field (`instruction[31:20]`) padded with 20 sign bits (`pad`).
-- **RTL Implementation:**
-```verilog
-out = {pad, instruction};
-```
-
-#### 2. S-Type (`src == 2'b01`) — e.g., `SW`
-- **Bit Distribution:** Split 7-bit upper field (`instruction[31:25]`) and 5-bit lower field (`instruction[11:7]`) padded with 20 sign bits (`pad`).
-- **RTL Implementation:**
-```verilog
-out = {pad, instruction, instruction[11:7]};
-```
-
-#### 3. B-Type (`src == 2'b10`) — e.g., `BEQ`, `BNE`
-- **Bit Distribution:** 13-bit signed branch offset (`imm[12]` at `[31]`, `imm[11]` at `[7]`, `imm[10:5]` at `[30:25]`, `imm[4:1]` at `[11:8]`, and `imm[0]` hardwired to `1'b0`), padded with 19 sign bits (`pad[18:0]`).
-- **RTL Implementation:**
-```verilog
-out = {pad[18:0], instruction[31], instruction[7], instruction, instruction[11:8], 1'b0};
-```
-
-#### 4. J-Type (`src == 2'b11`) — e.g., `JAL`
-- **Bit Distribution:** 21-bit signed jump offset (`imm[20]` at `[31]`, `imm[19:12]` at `[19:12]`, `imm[11]` at `[20]`, `imm[10:1]` at `[30:21]`, and `imm[0]` hardwired to `1'b0`), padded with 11 sign bits (`pad[10:0]`).
-- **RTL Implementation:**
-```verilog
-out = {pad[10:0], instruction[31], instruction, instruction[20], instruction, 1'b0};
-```
-
-### 4. Current RTL (`rtl/imm_gen.v` — Final)
-
-```verilog
-module imm_gen (
-    input  wire [31:0] instruction,
-    input  wire [1:0]  src,
-    output reg  [31:0] out
-);
-
-    reg [19:0] pad;
-
-    always @(*) begin 
-        if (instruction[31] == 1'b0) begin
-            pad = 20'b0;
-        end
-        else begin
-            pad = 20'hFFFFF;
-        end
-
-        if (src == 2'b00) begin
-            out = {pad, instruction};
-        end
-        else if (src == 2'b01) begin
-            out = {pad, instruction, instruction[11:7]};
-        end
-        else if (src == 2'b10) begin
-            out = {pad[18:0], instruction[31], instruction[7], instruction, instruction[11:8], 1'b0};
-        end
-        else if (src == 2'b11) begin
-            out = {pad[10:0], instruction[31], instruction, instruction[20], instruction, 1'b0};
-        end
-        else begin
-            out = 32'b0;
-        end
-    end
-
-endmodule
-```
+By first building a **modular single-cycle processor in Phase I**, we prove that every arithmetic operation, register read/write, memory access, and branch calculation works 100% correctly in hardware. Once this foundation is proven, transitioning to a pipelined core in Phase II becomes a clean, manageable engineering task of inserting pipeline registers and forwarding logic.
 
 ---
 
-## Phase 1 — ALU Control Unit Implementation
+## 3. What is RISC-V?
 
-**Date:** October 22, 2026
+**RISC** stands for *Reduced Instruction Set Computer*. Unlike older processor architectures (like x86 found in standard PCs) which have hundreds of complicated, variable-length instructions, a RISC processor uses a small set of simple, uniform instructions.
 
-### 1. What Was Done Today
+**RISC-V** (pronounced *"risk-five"*) is an open-source, royalty-free instruction set architecture created at UC Berkeley in 2010.
 
-- Designed and implemented the combinational **ALU Control Unit (`alu_control.v`)** in Verilog.
-- Mapped the 2-bit category selector (`alu_op`) alongside `funct3` (`instruction[14:12]`) and `funct7` (`instruction[31:25]`) to drive the 4-bit `control_alu` signal into the ALU.
-- Structured the decoding logic using explicit `if-else` trees with a safe default assignment at the top of the combinational block to prevent latch inference.
+### Why RISC-V is Great for Hardware Design:
+- **Fixed 32-bit Length:** Every instruction is exactly 32 bits long (4 bytes). The processor never has to guess how long an instruction is.
+- **Uniform Register Locations:** In almost all instructions, the source registers (`rs1`, `rs2`) and the destination register (`rd`) are located at the exact same bit positions inside the 32-bit instruction word.
+- **Predictable Immediate Sign Bit:** The sign bit of every immediate constant is always located at bit `[31]`. This makes immediate decoding logic very simple and fast.
 
-### 2. How It Works
+---
 
-In a two-level RISC-V control scheme, the Main Control Unit inspects the instruction `opcode` and sends a 2-bit `alu_op` category code to `alu_control`. The ALU Control Unit then resolves the exact 4-bit hardware operation:
+## 4. What Does "Single-Cycle" Mean?
 
-| `alu_op` | `funct3` | `funct7[5]` (`instruction[30]`) | Instruction Category / Target | Operation | `control_alu` |
-|:---:|:---:|:---:|---|---|:---:|
-| `2'b00` | *Any* | *Any* | `LW`, `SW` (Memory Address Offset) | ADD | `4'b0010` |
-| `2'b01` | *Any* | *Any* | `BEQ`, `BNE` (Branch Comparison) | SUB | `4'b0110` |
-| `2'b10` | `3'b000` | `1'b0` | `ADD` | ADD | `4'b0010` |
-| `2'b10` | `3'b000` | `1'b1` | `SUB` | SUB | `4'b0110` |
-| `2'b10` | `3'b111` | *Any* | `AND`, `ANDI` | AND | `4'b0000` |
-| `2'b10` | `3'b110` | *Any* | `OR`, `ORI` | OR | `4'b0001` |
-| `2'b10` | `3'b100` | *Any* | `XOR`, `XORI` | XOR | `4'b0100` |
+In a **single-cycle processor**:
+- The clock ticks at a constant frequency (in our simulation, once every $10\,\text{ns}$, which corresponds to $100\,\text{MHz}$).
+- In that single $10\,\text{ns}$ period, the processor does **everything** for that instruction:
+  1. Reads the instruction from memory using the Program Counter.
+  2. Reads the register file and decodes the opcode.
+  3. Performs the math or logical operation in the ALU.
+  4. Reads or writes to data memory (if it is a load or store instruction).
+  5. Writes the final answer back to the destination register.
+- At the next rising clock edge, the Program Counter updates to the next instruction address, and the destination register stores its new value.
+- Therefore, **Cycles Per Instruction (CPI) = 1.0**.
 
-### 3. Current RTL (`rtl/alu_control.v`)
+---
 
-```verilog
-module alu_control (
-    input  wire [1:0] alu_op,
-    input  wire [2:0] funct3,
-    input  wire [6:0] funct7,
-    output reg  [3:0] control_alu
-);
+## 5. How an Instruction Moves Through the Processor
 
-    always @(*) begin
-        control_alu = 4'b0010;
+Even though everything completes in one clock cycle, data physically flows through the processor along five classic stages:
 
-        if (alu_op == 2'b00) begin
-            control_alu = 4'b0010;
-        end
-        else if (alu_op == 2'b01) begin
-            control_alu = 4'b0110;
-        end
-        else if (alu_op == 2'b10) begin
-            if (funct3 == 3'b000) begin
-                if (funct7[5] == 1'b1) begin
-                    control_alu = 4'b0110;
-                end
-                else begin
-                    control_alu = 4'b0010;
-                end
-            end
-            else if (funct3 == 3'b111) begin
-                control_alu = 4'b0000;
-            end
-            else if (funct3 == 3'b110) begin
-                control_alu = 4'b0001;
-            end
-            else if (funct3 == 3'b100) begin
-                control_alu = 4'b0100;
-            end
-            else begin
-                control_alu = 4'b0010;
-            end
-        end
-        else begin
-            control_alu = 4'b0010;
-        end
-    end
-
-endmodule
+```mermaid
+flowchart LR
+    A["1. FETCH (IF)<br>Get instruction<br>from PC address"] --> B["2. DECODE (ID)<br>Read registers &<br>decode opcode"]
+    B --> C["3. EXECUTE (EX)<br>ALU computes math<br>or branch target"]
+    C --> D["4. MEMORY (MEM)<br>Read/Write RAM<br>(for LW / SW)"]
+    D --> E["5. WRITEBACK (WB)<br>Save result back<br>into destination reg"]
 ```
 
----
-
-## Remaining Roadmap & Required Modules
-
-- [ ] **Main Control Unit (`control_unit.v`):** Decode `opcode` (`instruction[6:0]`) to generate `reg_write`, `imm_src`, `alu_src`, `mem_write`, `result_src`, `branch`, and `alu_op`.
-- [ ] **Fetch Stage (`pc.v` & `instr_mem.v`):** Program Counter register, `PC + 4` adder, branch target adder, and Instruction Memory array.
-- [ ] **Data Memory (`data_mem.v`):** Synchronous write / asynchronous read memory block for `LW` and `SW`.
-- [ ] **Pipeline Registers (`if_id`, `id_ex`, `ex_mem`, `mem_wb`):** Stage isolation registers to hold instruction data and control signals across clock cycles.
-- [ ] **Hazard Detection & Forwarding Unit:** Data forwarding muxes and stall/flush logic to resolve RAW (Read-After-Write) and control hazards.
-
-# 5-Stage Pipelined RISC-V Processor
-
-**Project Date:** October 17–23, 2026  
-**Architecture:** 5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)  
-**Target Instruction Set:** RV32I Subset
+1. **Instruction Fetch (`IF`):** The Program Counter (`PC`) holds the memory address of the instruction. That address is sent to Instruction Memory, which looks up the 32-bit machine code word. Meanwhile, an adder calculates `PC + 4` for the next sequential instruction.
+2. **Instruction Decode (`ID`):** The 32-bit instruction word is split into fields:
+   - The **Opcode** tells the Control Unit what kind of instruction it is.
+   - The **Register Addresses** (`rs1` and `rs2`) tell the Register File which registers to read.
+   - The **Immediate Generator** extracts any numeric constants embedded in the instruction and extends them to a full 32 bits.
+3. **Execution (`EX`):** The Arithmetic Logic Unit (ALU) does the actual computation. For an `ADD`, it adds two register values; for a memory access (`LW` or `SW`), it calculates the memory address; for a branch (`BEQ`), it compares the two numbers to see if they are equal. At the same time, another adder computes the branch target address (`PC + offset`).
+4. **Memory Access (`MEM`):** If the instruction is a Store Word (`SW`), the value is saved into Data Memory. If it is a Load Word (`LW`), the value is read out of Data Memory. For arithmetic instructions, this stage does nothing.
+5. **Writeback (`WB`):** A multiplexer picks either the ALU result (for arithmetic) or the loaded memory data (for `LW`) and writes it back into the destination register (`rd`).
 
 ---
 
-## Phase 1 — ALU Implementation
+## 6. Detailed Explanation of Each Verilog Module
 
-**Date:** October 17, 2026
-
-### 1. What Was Done Today
-
-- Selected the **5-Stage Pipelined RISC-V (`IF-ID-EX-MEM-WB`)** architecture and mapped the target RV32I subset: `ADD`, `SUB`, `AND`, `OR`, `XOR`, `ADDI`, `LW`, `SW`, `BEQ`, `BNE`.
-- Analyzed RISC-V instruction formats (`opcode`, `rd`, `rs1`, `rs2`, and split immediates).
-- Implemented the 32-bit combinational `ALU_RISCV` module in Verilog.
-
-### 2. Why Start with the ALU?
-
-1. **Zero Dependencies:** It is a pure combinational leaf module requiring no clocks, memory, or pipeline registers.
-2. **Core Engine:** Handles arithmetic/logic (`ADD`, `SUB`, `AND`, `OR`, `XOR`), memory address calculation (`LW`/`SW`), and branch comparisons (`BEQ`/`BNE`).
-3. **Control Anchor:** Defines the 4-bit control codes that the Control Unit will target.
-
-### 3. How It Works
-
-All arithmetic and bitwise sub-circuits evaluate in parallel as soon as inputs `a` and `b` arrive. The 4-bit `control_alu` signal acts as a multiplexer selector to route the chosen operation to `result_alu`.
-
-#### ALU Control Codes
-
-| `control_alu` | Operation | Expression |
-|:---:|---|---|
-| `4'b0000` | AND | `a & b` |
-| `4'b0001` | OR | `a \| b` |
-| `4'b0010` | ADD | `a + b` |
-| `4'b0110` | SUB | `a - b` |
-| `4'b0100` | XOR | `a ^ b` |
-
-The `zero` flag asserts high (`1'b1`) whenever `result_alu == 0`, providing a direct comparison output for branch instructions (`BEQ`/`BNE`).
+Every module in the [modules/](file:///Users/aditsingh/Desktop/mca_project/modules) directory has a dedicated role. Here is how each module works, what wires go into it, what wires come out, and why it is needed:
 
 ---
 
-## Phase 1 — Register File Implementation
+### 1. Program Counter — [`modules/pc.v`](file:///Users/aditsingh/Desktop/mca_project/modules/pc.v)
+- **Purpose:** A 32-bit register that stores the memory address of the instruction currently being executed.
+- **Inputs:**
+  - `clk` (Clock): The heartbeat of the system.
+  - `rst` (Reset): When high, resets the program counter back to address `0x00000000`.
+  - `p_nxt[31:0]` (Next PC): The address of the next instruction (either `PC + 4` or a branch target).
+- **Outputs:**
+  - `p_out[31:0]` (Current PC): The active 32-bit instruction address.
+- **Interaction:** `p_out` is sent to Instruction Memory to fetch the instruction and to an adder to calculate the next address.
+- **Why it is needed:** Without a Program Counter, the processor would not know which instruction to execute or where to go next.
 
-**Date:** October 18, 2026
+---
 
-### 1. What Was Done Today
+### 2. Adder — [`modules/adder.v`](file:///Users/aditsingh/Desktop/mca_project/modules/adder.v)
+- **Purpose:** A pure combinational addition circuit that computes `out = a + b`.
+- **Inputs:**
+  - `a[31:0]`: First 32-bit input number.
+  - `b[31:0]`: Second 32-bit input number.
+- **Outputs:**
+  - `out[31:0]`: 32-bit sum.
+- **Interaction:**
+  - Used in `if_stage` with `b = 32'd4` to calculate `PC + 4`.
+  - Used in `ex_stage` to calculate branch destinations (`PC + immediate_offset`).
+- **Why it is needed:** Dedicated adders allow the processor to calculate next-PC addresses in parallel with the main ALU performing data calculations.
 
-- Designed and implemented the **32×32 Register File (`reg_file.v`)** supporting dual asynchronous read ports and a single synchronous write port.
-- Enforced the RISC-V architectural rule that **register `x0` must permanently read as zero** and be immune to accidental overwrites.
-- Added write-enable safety checks combined with address protection (`rd != 5'b0`) during clock-edge updates.
+---
 
-### 2. How It Works
+### 3. 2-to-1 Multiplexer — [`modules/mux2.v`](file:///Users/aditsingh/Desktop/mca_project/modules/mux2.v)
+- **Purpose:** A hardware data selector. It chooses between two 32-bit inputs based on a 1-bit selector signal (`sel`).
+- **Inputs:**
+  - `in0[31:0]`: Value chosen when `sel == 0`.
+  - `in1[31:0]`: Value chosen when `sel == 1`.
+  - `sel`: The 1-bit control decision wire.
+- **Outputs:**
+  - `out[31:0]`: The selected 32-bit value.
+- **Interaction:**
+  - **PC Mux (`if_stage`):** Chooses between `PC + 4` and branch target based on `pc_src`.
+  - **ALU Operand Mux (`ex_stage`):** Chooses between register value `read_data2` and `imm_out` based on `alu_src`.
+  - **Writeback Mux (`wb_stage`):** Chooses between ALU result and Data Memory output based on `mem_to_reg`.
+- **Why it is needed:** Hardware multiplexers route data dynamically depending on what kind of instruction is executing.
 
-#### Asynchronous Reads
+---
 
-`read_data1` and `read_data2` evaluate continuously. If the requested address (`rs1` or `rs2`) is `5'b0`, the hardware bypasses the register array and outputs `32'b0` directly.
+### 4. Instruction Memory — [`modules/instr_mem.v`](file:///Users/aditsingh/Desktop/mca_project/modules/instr_mem.v)
+- **Purpose:** Holds the program instructions. It is organized as 64 words of 32 bits each (256 bytes total).
+- **Inputs:**
+  - `read_address[31:0]`: The byte address coming from the Program Counter.
+- **Outputs:**
+  - `instruction[31:0]`: The 32-bit machine code instruction word.
+- **How it works:** In RISC-V, instructions are 4 bytes wide and aligned on 4-byte boundaries (`0x00`, `0x04`, `0x08`, `0x0C`). Therefore, the lower two bits of the address are always `00`. The module indexes the internal word array using `read_address[7:2]`, which divides the byte address by 4 without any hardware delay.
+- **Interaction:** Receives the address from `pc.v` and delivers the machine code word to the `id_stage` (Control Unit, Register File, and Immediate Generator).
+- **Why it is needed:** The processor must have a place to read its program instructions.
 
-#### Synchronous Writes
+---
 
-On the positive edge of the clock (`posedge clk`), if `write_enable` is high and `rd` is not `x0`, `write_data` is stored into `register[rd]`.
+### 5. Register File — [`modules/reg_file.v`](file:///Users/aditsingh/Desktop/mca_project/modules/reg_file.v)
+- **Purpose:** Contains the 32 general-purpose 32-bit registers (`x0` through `x31`).
+- **Inputs:**
+  - `clk`: Clock signal for writes.
+  - `write_enable`: Control signal; when `1`, enables writing to register `rd`.
+  - `rs1[4:0]`: 5-bit address of source register 1 ($2^5 = 32$ possibilities).
+  - `rs2[4:0]`: 5-bit address of source register 2.
+  - `rd[4:0]`: 5-bit address of the destination register.
+  - `write_data[31:0]`: 32-bit value to store into `rd`.
+- **Outputs:**
+  - `read_data1[31:0]`: Current 32-bit value stored in register `rs1`.
+  - `read_data2[31:0]`: Current 32-bit value stored in register `rs2`.
+- **Key Hardware Rules:**
+  - **Dual Asynchronous Reads:** Reading is combinational and instantaneous. As soon as `rs1` or `rs2` changes, the output updates without waiting for a clock tick.
+  - **Single Synchronous Write:** Writing only occurs on the rising edge of `clk` when `write_enable == 1`.
+  - **Register `x0` is hardwired to Zero:** The architecture enforces `assign read_data1 = (rs1 == 5'b0) ? 32'b0 : register[rs1];`. Writing to `x0` is strictly ignored (`rd != 5'b0`).
+- **Why it is needed:** Registers provide the ultra-fast working memory for holding variables during computation.
 
-### 3. Current RTL (`rtl/reg_file.v`)
+---
 
+### 6. Immediate Generator — [`modules/imm_gen.v`](file:///Users/aditsingh/Desktop/mca_project/modules/imm_gen.v)
+- **Purpose:** Extracts numbers (constants/offsets) embedded directly inside instructions and sign-extends them into full 32-bit values.
+- **Inputs:**
+  - `instruction[31:0]`: The full 32-bit instruction word.
+  - `src[1:0]`: 2-bit format selector from the Control Unit:
+    - `2'b00` = I-Type (`ADDI`, `LW`)
+    - `2'b01` = S-Type (`SW`)
+    - `2'b10` = B-Type (`BEQ`, `BNE`)
+    - `2'b11` = J-Type (`JAL`)
+- **Outputs:**
+  - `out[31:0]`: The 32-bit signed immediate constant.
+- **How it works:** In RISC-V, bit `[31]` is always the sign bit. The module precalculates a 20-bit padding mask (`20'hFFFFF` if negative, `20'h00000` if positive) and pieces together the split bit fields according to the selected format.
+- **Why it is needed:** Machine instructions are only 32 bits long, so immediate numbers are small (12 bits). The ALU requires both of its inputs to be 32 bits wide, so sign-extension is mandatory.
+
+---
+
+### 7. Main Control Unit — [`modules/control_unit.v`](file:///Users/aditsingh/Desktop/mca_project/modules/control_unit.v)
+- **Purpose:** The "brain" of the processor. It inspects the 7-bit opcode (`instruction[6:0]`) and sets the control signals across the datapath.
+- **Inputs:**
+  - `opcode[6:0]`: The 7-bit instruction opcode field.
+- **Outputs:**
+  - `reg_write`: Enables writing the result into the destination register.
+  - `imm_src[1:0]`: Tells the immediate generator which format to decode.
+  - `alu_src`: Selects ALU operand B (`0` = register `read_data2`, `1` = immediate `imm_out`).
+  - `mem_read`: Enables reading from data memory.
+  - `mem_write`: Enables writing to data memory.
+  - `mem_to_reg`: Selects writeback data (`0` = ALU result, `1` = memory read data).
+  - `branch`: Indicates that the instruction is a conditional branch.
+  - `alu_op[1:0]`: Broad operation category sent to `alu_control`.
+- **Why it is needed:** Different instructions need different hardware paths activated. The control unit coordinates the multiplexers and memory read/write enables.
+
+---
+
+### 8. ALU Control Unit — [`modules/alu_control.v`](file:///Users/aditsingh/Desktop/mca_project/modules/alu_control.v)
+- **Purpose:** Takes the broad 2-bit category from the Main Control Unit (`alu_op`) and combines it with the instruction's `funct3` and `funct7` fields to determine the exact 4-bit operation code for the ALU.
+- **Inputs:**
+  - `alu_op[1:0]`: Broad operation code (`00` = memory add, `01` = branch subtract, `10` = R-type/I-type).
+  - `funct3[2:0]`: 3-bit sub-function code from `instruction[14:12]`.
+  - `funct7[6:0]`: 7-bit sub-function code from `instruction[31:25]`.
+- **Outputs:**
+  - `control_alu[3:0]`: 4-bit selector wire sent to the ALU.
+- **Why it is needed:** RISC-V uses a two-level control scheme. This keeps the Main Control Unit simple and delegates instruction-specific math decoding to the smaller ALU control block.
+
+---
+
+### 9. Arithmetic Logic Unit (ALU) — [`modules/alu.v`](file:///Users/aditsingh/Desktop/mca_project/modules/alu.v)
+- **Purpose:** Performs the actual arithmetic calculation or logical comparison.
+- **Inputs:**
+  - `a[31:0]`: First 32-bit operand (always from `read_data1`).
+  - `b[31:0]`: Second 32-bit operand (either `read_data2` or `imm_out`).
+  - `control_alu[3:0]`: 4-bit operation code.
+- **Outputs:**
+  - `result_alu[31:0]`: The 32-bit result.
+  - `zero`: A 1-bit flag that asserts high (`1'b1`) whenever `result_alu == 0`.
+- **Supported Operations:**
+  - `4'b0000`: Bitwise AND (`a & b`)
+  - `4'b0001`: Bitwise OR (`a | b`)
+  - `4'b0010`: Addition (`a + b`)
+  - `4'b0110`: Subtraction (`a - b`)
+  - `4'b0100`: Bitwise XOR (`a ^ b`)
+- **Why it is needed:** The ALU is the fundamental calculation engine of any computer processor.
+
+---
+
+### 10. Branch Unit — [`modules/branch_unit.v`](file:///Users/aditsingh/Desktop/mca_project/modules/branch_unit.v)
+- **Purpose:** Evaluates whether a branch condition has succeeded.
+- **Inputs:**
+  - `branch`: 1-bit signal from Control Unit indicating this is a branch instruction.
+  - `funct3[2:0]`: Tells whether it is `BEQ` (`3'b000`) or `BNE` (`3'b001`).
+  - `zero`: The 1-bit equality comparison flag from the ALU.
+- **Outputs:**
+  - `pc_src`: Controls the next-PC multiplexer (`0` = sequential `PC + 4`, `1` = branch target).
+- **How it works:**
+  - For `BEQ` (Branch if Equal): If `branch == 1` and `zero == 1` (meaning $a - b = 0$), then `pc_src = 1`.
+  - For `BNE` (Branch if Not Equal): If `branch == 1` and `zero == 0` (meaning $a - b \neq 0$), then `pc_src = 1`.
+- **Why it is needed:** It makes the final decision on whether the Program Counter jumps or continues sequentially.
+
+---
+
+### 11. Data Memory — [`modules/data_mem.v`](file:///Users/aditsingh/Desktop/mca_project/modules/data_mem.v)
+- **Purpose:** The processor's RAM (Read/Write Data Memory). It holds 64 words of 32 bits (256 bytes).
+- **Inputs:**
+  - `clk`: Clock signal for writes.
+  - `mem_read`: When `1`, enables reading from memory.
+  - `mem_write`: When `1`, enables writing to memory.
+  - `address[31:0]`: Memory byte address calculated by the ALU.
+  - `write_data[31:0]`: Data value to store (comes from register `read_data2`).
+- **Outputs:**
+  - `read_data[31:0]`: 32-bit data word read out of memory.
+- **Operation:**
+  - Writes are **synchronous**: data is latched into `memory[address[7:2]]` on `posedge clk` when `mem_write == 1`.
+  - Reads are **asynchronous**: when `mem_read == 1`, data appears immediately. When `mem_read == 0`, `read_data` outputs `32'b0`.
+- **Why it is needed:** Programs need temporary memory to store variables that do not fit in the 32 registers (`SW` and `LW`).
+
+---
+
+### 12. Top-Level Core & Stage Wrappers
+- **`if_stage.v`:** Groups `pc`, `adder` (`PC+4`), `mux2`, and `instr_mem`.
+- **`id_stage.v`:** Groups `control_unit`, `reg_file`, and `imm_gen`.
+- **`ex_stage.v`:** Groups `mux2` (ALU source), `alu_control`, `alu`, `adder` (branch target), and `branch_unit`.
+- **`mem_stage.v`:** Houses `data_mem`.
+- **`wb_stage.v`:** Houses the writeback selection multiplexer.
+- **`riscv_single_cycle.v`:** Top-level module interconnecting the five stage wrappers combinationally.
+- **`tb_riscv.v`:** The simulation testbench. Generates clock (`10ns` period) and reset (`15ns` duration), dumps waveforms to `riscv_single_cycle.vcd`, and runs execution.
+
+---
+
+## 7. How the Control Unit Works
+
+The Control Unit inspects `instruction[6:0]` (the 7-bit opcode) and sets the following control signals:
+
+| Instruction Type | Opcode | `reg_write` | `imm_src` | `alu_src` | `mem_read` | `mem_write` | `mem_to_reg` | `branch` | `alu_op` |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **R-Type** (`ADD`, `SUB`, `AND`, `OR`, `XOR`) | `0110011` | `1` | `00` | `0` (Reg) | `0` | `0` | `0` (ALU) | `0` | `10` |
+| **I-Type ALU** (`ADDI`) | `0010011` | `1` | `00` | `1` (Imm) | `0` | `0` | `0` (ALU) | `0` | `10` |
+| **Load** (`LW`) | `0000011` | `1` | `00` | `1` (Imm) | `1` | `0` | `1` (MEM) | `0` | `00` |
+| **Store** (`SW`) | `0100011` | `0` | `01` | `1` (Imm) | `0` | `1` | `0` (X) | `0` | `00` |
+| **Branch** (`BEQ`, `BNE`) | `1100011` | `0` | `10` | `0` (Reg) | `0` | `0` | `0` (X) | `1` | `01` |
+
+---
+
+## 8. How the ALU Works
+
+The ALU takes inputs $A$ and $B$ and computes an output based on the 4-bit `control_alu` code:
+
+| `control_alu` | Operation | Verilog Logic | Used By |
+|:---:|:---:|:---:|:---|
+| `4'b0000` | AND | `result_alu = a & b;` | `AND` |
+| `4'b0001` | OR | `result_alu = a \| b;` | `OR` |
+| `4'b0010` | ADD | `result_alu = a + b;` | `ADD`, `ADDI`, `LW`, `SW` |
+| `4'b0110` | SUB | `result_alu = a - b;` | `SUB`, `BEQ`, `BNE` |
+| `4'b0100` | XOR | `result_alu = a ^ b;` | `XOR` |
+
+The `zero` flag is generated simply as:
 ```verilog
-module reg_file (
-    input  wire        clk,
-    input  wire        write_enable,
-    input  wire [4:0]  rs1,
-    input  wire [4:0]  rs2,
-    input  wire [4:0]  rd,
-    input  wire [31:0] write_data,
+assign zero = (result_alu == 32'b0) ? 1'b1 : 1'b0;
+```
+For branch instructions, the ALU subtracts $a - b$. If $a == b$, the result is $0$, which automatically makes `zero = 1`!
 
-    output wire [31:0] read_data1,
-    output wire [31:0] read_data2
-);
+---
 
-    reg [31:0] register [31:0];
+## 9. How Registers and Memory Work
 
-    assign read_data1 = (rs1 == 5'b0) ? 32'b0 : register[rs1];
-    assign read_data2 = (rs2 == 5'b0) ? 32'b0 : register[rs2];
+### Register File Behavior:
+- Contains 32 registers (`x0` to `x31`).
+- You can read **two registers at the same time** (`rs1` and `rs2`) purely combinationally.
+- You can write to **one register** (`rd`) at the rising clock edge when `reg_write == 1`.
+- Register `x0` is permanently wired to value `0`.
 
-    always @(posedge clk) begin
-        if (write_enable && (rd != 5'b0)) begin
-            register[rd] <= write_data;
-        end
-    end
+### Data Memory Behavior:
+- Organized as 64 words (256 bytes).
+- Indexed in 4-byte increments using `address[7:2]`.
+- Writing happens on the rising clock edge when `mem_write == 1`.
+- Reading happens combinationally when `mem_read == 1`.
 
-endmodule
+---
+
+## 10. Supported Instructions
+
+The Phase I processor supports 10 core RV32I instructions:
+
+| Instruction | Type | Syntax | Operation Performed | Verified? |
+|:---|:---:|:---|:---|:---:|
+| **ADD** | R | `add rd, rs1, rs2` | $rd = rs1 + rs2$ | **Yes** |
+| **SUB** | R | `sub rd, rs1, rs2` | $rd = rs1 - rs2$ | **Yes** |
+| **AND** | R | `and rd, rs1, rs2` | $rd = rs1 \ \& \ rs2$ | **Yes** |
+| **OR** | R | `or rd, rs1, rs2` | $rd = rs1 \mid rs2$ | **Yes** |
+| **XOR** | R | `xor rd, rs1, rs2` | $rd = rs1 \oplus rs2$ | **Yes** |
+| **ADDI** | I | `addi rd, rs1, imm` | $rd = rs1 + imm$ (positive values) | **Yes** |
+| **LW** | I | `lw rd, offset(rs1)` | $rd = \text{Memory}[rs1 + offset]$ | **Yes** |
+| **SW** | S | `sw rs2, offset(rs1)` | $\text{Memory}[rs1 + offset] = rs2$ | **Yes** |
+| **BEQ** | B | `beq rs1, rs2, label` | If $rs1 == rs2 \rightarrow PC += offset$ | **Yes** |
+| **BNE** | B | `bne rs1, rs2, label` | If $rs1 \neq rs2 \rightarrow PC += offset$ | Hardware present |
+
+---
+
+## 11. How the Test Programs Work
+
+The repository includes three verified test programs. The machine code `.hex` files live in the root directory, and the human-readable assembly source files live in [tests/](file:///Users/aditsingh/Desktop/mca_project/tests):
+
+### Test 1: Branch Test ([`tests/branch_test.asm`](file:///Users/aditsingh/Desktop/mca_project/tests/branch_test.asm) / `program.hex`)
+Verifies conditional branching with `BEQ`:
+```assembly
+addi x1, x0, 5       # x1 = 5
+addi x2, x0, 5       # x2 = 5
+beq  x1, x2, target  # 5 == 5, so branch is TAKEN! Jumps over the next instruction!
+addi x3, x0, 99      # Bypassed instruction (should NEVER execute)
+target:
+addi x4, x0, 10      # Target instruction: executes successfully (x4 = 10)
+```
+- **Observed Behavior:** Instruction at PC `0x0C` (`addi x3, x0, 99`) is skipped completely. Next PC jumps directly to `0x10` (`addi x4, x0, 10`).
+
+### Test 2: Arithmetic & Logic Test ([`tests/arithmetic_test.asm`](file:///Users/aditsingh/Desktop/mca_project/tests/arithmetic_test.asm) / `program_arithmetic.hex`)
+Verifies ALU math and logic:
+```assembly
+addi x1, x0, 5       # x1 = 5
+addi x2, x0, 10      # x2 = 10
+add  x3, x1, x2      # x3 = 5 + 10 = 15  (0x0F)
+sub  x4, x1, x2      # x4 = 5 - 10 = -5  (0xFFFFFFFB)
+and  x5, x1, x2      # x5 = 5 & 10 = 0   (0x00)
+or   x6, x1, x2      # x6 = 5 | 10 = 15  (0x0F)
+xor  x7, x1, x2      # x7 = 5 ^ 10 = 15  (0x0F)
+```
+- **Observed Behavior:** All calculations match expected theoretical values in the simulation waveform.
+
+### Test 3: Memory Store & Load Test ([`tests/memory_test.asm`](file:///Users/aditsingh/Desktop/mca_project/tests/memory_test.asm) / `program_memory.hex`)
+Verifies RAM writing and reading:
+```assembly
+addi x1, x0, 42      # x1 = 42 (0x2A)
+sw   x1, 0(x0)       # Store 42 into Data Memory address 0
+lw   x2, 0(x0)       # Load value at address 0 into x2 (should be 42)
+```
+- **Observed Behavior:** Value `42` (`0x2A`) is written to memory in cycle 2, then read into register `x2` in cycle 3.
+
+---
+
+## 12. How to Compile and Run the Simulation
+
+We use **Icarus Verilog (`iverilog`)** and the **`vvp`** runtime engine.
+
+### Quick Commands via Makefile:
+```bash
+# Run default simulation (Branch test)
+make sim
+
+# Run specific tests:
+make test-branch       # Runs the BEQ branch test
+make test-arithmetic   # Runs the ADD, SUB, AND, OR, XOR test
+make test-memory       # Runs the SW and LW test
+
+# Clean up simulation output files:
+make clean
 ```
 
+### Or Compile Manually via Terminal:
+```bash
+# 1. Compile the processor testbench
+iverilog -o sim.out modules/tb_riscv.v
+
+# 2. Run simulation
+vvp sim.out
+```
+When simulation runs, it generates the waveform file: `riscv_single_cycle.vcd`.
+
 ---
 
-## Phase 1 — Immediate Generator Implementation
+## 13. How to Inspect Waveforms Using Surfer
 
-**Date:** October 20, 2026
+**Surfer** is a fast, modern waveform viewer written in Rust.
 
-### 1. What Was Done Today
+### Method 1: Using Surfer in Your Browser (No Installation Required!)
+1. Open your web browser and go to: **[https://surfer-project.org](https://surfer-project.org)**
+2. Click **Open file** (or drag and drop) and select **`riscv_single_cycle.vcd`** from your project folder.
+3. In the signal scope panel on the left, navigate to `tb_riscv` $\rightarrow$ `uut`.
+4. Click on the following recommended signals to add them to your waveform view:
+   - `clk` (Clock)
+   - `rst` (Reset)
+   - `p_out[31:0]` (Program Counter)
+   - `instruction[31:0]` (Instruction machine code)
+   - `read_data1[31:0]`, `read_data2[31:0]` (Register values)
+   - `result_alu[31:0]` (ALU output)
+   - `write_data[31:0]` (Data written to register file)
+   - `pc_src` (Branch selector)
 
-- Designed and implemented the combinational **Immediate Generator (`imm_gen.v`)** in Verilog.
-- Explicitly implemented **only I-type and S-type instruction formats** today (`ADDI`, `LW`, and `SW`).
-- Built custom, step-by-step `if-else` sign-extension logic rather than relying on condensed replication shorthand, making the hardware behavior transparent and easy to trace.
-- Added a default output assignment (`out = 32'b0`) at the top of the combinational block to prevent unintended latch inference.
-
-### 2. Design Choices & How It Works
-
-#### Explicit Sign-Extension (`if-else` Architecture)
-
-Instead of hiding sign-extension behind nested replication operators, the module explicitly inspects the sign bit (`instruction[31]`):
-- **Positive Immediates (`instruction[31] == 0`):** The upper 20 bits are explicitly padded with zeros (`20'b0`) and concatenated with the 12-bit immediate.
-- **Negative Immediates (`instruction[31] == 1`):** To preserve two's complement negative values across 32 bits, the upper 20 bits are explicitly padded with ones (`20'hFFFFF`) and concatenated with the 12-bit immediate.
-
-#### Immediate Source Control Codes (`src`)
-
-| `src` | Format | Target Instructions | Immediate Bit Mapping |
-|:---:|:---:|---|---|
-| `2'b00` | **I-Type** | `ADDI`, `LW` | `instruction[31:20]` (contiguous 12-bit field) |
-| `2'b01` | **S-Type** | `SW` | `{instruction[31:25], instruction[11:7]}` (split 7-bit + 5-bit fields) |
-
-*Note: Only I-type and S-type instructions were implemented today. B-type (`2'b10`) for branches will be added in a subsequent session.*
-
-### 3. Initial RTL (`rtl/imm_gen.v` — v1)
-
-```verilog
-module imm_gen (
-    input  wire [31:0] instruction,
-    input  wire [1:0]  src,
-    output reg  [31:0] out
-);
-
-    always @(*) begin 
-        // Default output to prevent unwanted latches
-        out = 32'b0;
-
-        // I-type instructions (e.g., ADDI, LW)
-        if (src == 2'b00) begin 
-            if (instruction[31] == 0) begin
-                out = {20'b0, instruction};
-            end
-            else begin 
-                out = {20'hFFFFF, instruction};
-            end
-        end
-        
-        // S-type instructions (e.g., SW)
-        else if (src == 2'b01) begin
-            if (instruction[31] == 0) begin
-                out = {20'b0, instruction, instruction[11:7]};
-            end
-            else begin
-                out = {20'hFFFFF, instruction, instruction[11:7]};
-            end
-        end
-    end
-
-endmodule
+### Method 2: Using Desktop Surfer / GTKWave
+If you have Surfer installed locally via cargo:
+```bash
+surfer riscv_single_cycle.vcd
+```
+Or if you prefer GTKWave:
+```bash
+gtkwave riscv_single_cycle.vcd &
 ```
 
 ---
 
-## Phase 1 — Immediate Generator Refactoring & Full Format Expansion
+## 14. What We Have Successfully Tested
 
-**Date:** October 21, 2026
+The existing waveform screenshots in [evidences/](file:///Users/aditsingh/Desktop/mca_project/evidences) demonstrate the following verified behavior:
 
-### 1. What Was Done Today
-
-- Identified a key structural redundancy while expanding `imm_gen.v` toward B-type (`src == 2'b10`) and J-type (`src == 2'b11`) support: checking `if (instruction[31] == 0)` repeatedly inside every `src` branch was duplicating the exact same sign-bit check across multiple blocks.
-- Refactored `imm_gen.v` to evaluate the MSB (`instruction[31]`) **only once** at the top of the combinational block using a dedicated 20-bit intermediate padding register (`reg [19:0] pad`).
-- Replaced the nested `if-else` trees inside each instruction format branch with clean, single-line concatenations utilizing `pad` (and sliced subsets `pad[18:0]` and `pad[10:0]`).
-- Completed full bit-distribution support for **I-type, S-type, B-type, and J-type** formats and ensured full `else` coverage to prevent latch inference.
-
-### 2. Design Realization & Why It Matters
-
-1. **Architectural Consistency in RISC-V:** Because the RISC-V ISA intentionally places the immediate sign bit at `instruction[31]` across all immediate instruction formats (I, S, B, U, J), the sign-extension decision is completely independent of `src`.
-2. **Factoring Out Common Logic:** By decoupling the **sign-bit evaluation** from the **bit-field extraction**, we eliminate repetitive nested `if-else` blocks. `pad` is computed once (`20'b0` for positive, `20'hFFFFF` for negative) and reused across every format below it.
-3. **Cleaner Hardware & Scalability:** As more instruction formats are added, we slice the exact number of upper sign-extension bits needed from `pad`, keeping the RTL compact, readable, and aligned with real hardware multiplexing.
-
-### 3. Instruction Formats & Bit Distributions
-
-#### 1. I-Type (`src == 2'b00`) — e.g., `ADDI`, `LW`
-- **Bit Distribution:** Contiguous 12-bit field (`instruction[31:20]`) padded with 20 sign bits (`pad`).
-- **RTL Implementation:**
-```verilog
-out = {pad, instruction};
-```
-
-#### 2. S-Type (`src == 2'b01`) — e.g., `SW`
-- **Bit Distribution:** Split 7-bit upper field (`instruction[31:25]`) and 5-bit lower field (`instruction[11:7]`) padded with 20 sign bits (`pad`).
-- **RTL Implementation:**
-```verilog
-out = {pad, instruction, instruction[11:7]};
-```
-
-#### 3. B-Type (`src == 2'b10`) — e.g., `BEQ`, `BNE`
-- **Bit Distribution:** 13-bit signed branch offset (`imm[12]` at `[31]`, `imm[11]` at `[7]`, `imm[10:5]` at `[30:25]`, `imm[4:1]` at `[11:8]`, and `imm[0]` hardwired to `1'b0`), padded with 19 sign bits (`pad[18:0]`).
-- **RTL Implementation:**
-```verilog
-out = {pad[18:0], instruction[31], instruction[7], instruction, instruction[11:8], 1'b0};
-```
-
-#### 4. J-Type (`src == 2'b11`) — e.g., `JAL`
-- **Bit Distribution:** 21-bit signed jump offset (`imm[20]` at `[31]`, `imm[19:12]` at `[19:12]`, `imm[11]` at `[20]`, `imm[10:1]` at `[30:21]`, and `imm[0]` hardwired to `1'b0`), padded with 11 sign bits (`pad[10:0]`).
-- **RTL Implementation:**
-```verilog
-out = {pad[10:0], instruction[31], instruction, instruction[20], instruction, 1'b0};
-```
-
-### 4. Current RTL (`rtl/imm_gen.v` — Final)
-
-```verilog
-module imm_gen (
-    input  wire [31:0] instruction,
-    input  wire [1:0]  src,
-    output reg  [31:0] out
-);
-
-    reg [19:0] pad;
-
-    always @(*) begin 
-        if (instruction[31] == 1'b0) begin
-            pad = 20'b0;
-        end
-        else begin
-            pad = 20'hFFFFF;
-        end
-
-        if (src == 2'b00) begin
-            out = {pad, instruction};
-        end
-        else if (src == 2'b01) begin
-            out = {pad, instruction, instruction[11:7]};
-        end
-        else if (src == 2'b10) begin
-            out = {pad[18:0], instruction[31], instruction[7], instruction, instruction[11:8], 1'b0};
-        end
-        else if (src == 2'b11) begin
-            out = {pad[10:0], instruction[31], instruction, instruction[20], instruction, 1'b0};
-        end
-        else begin
-            out = 32'b0;
-        end
-    end
-
-endmodule
-```
+1. **PC Reset & Sequential Stepping:**
+   - `01_pc_reset_verification.png`: Shows PC staying at `0` during reset, then advancing `0x00, 0x04, 0x08, 0x0C...` every cycle after reset is released.
+2. **Instruction Fetch:**
+   - `02_instruction_fetch.png`: Shows correct 32-bit machine code being read from instruction memory as PC increments.
+3. **Dual Register File Reads:**
+   - `03_register_file_read.png`: Shows register values $x1 = 5$ and $x2 = 10$ appearing instantaneously on `read_data1` and `read_data2`.
+4. **Immediate Generation:**
+   - `04_immediate_generation.png`: Shows correct sign-extension of I-type immediates.
+5. **Control Unit Decoding:**
+   - `05_control_unit_verification.png`: Shows control wires changing dynamically based on instruction opcode.
+6. **ALU Arithmetic & Logic:**
+   - `06_alu_arithmetic.png`: Shows `ADD` producing `15` (`0x0F`) and `SUB` producing `-5` (`0xFFFFFFFB`).
+   - `07_alu_logical.png`: Shows bitwise `AND`, `OR`, and `XOR` producing exact Boolean outputs.
+7. **Data Memory Roundtrip:**
+   - `08_sw_lw_waveform.png` & `09_data_memory_read_verification.png`: Shows `SW` writing `42` (`0x2A`) into memory, followed by `LW` loading `42` into register `x2`.
+8. **Conditional Branching (BEQ):**
+   - `11_beq_taken_verification.png`: Shows `zero` asserting high when comparing $5 == 5$, setting `pc_src = 1`, and causing the PC to branch to `0x10`, bypassing `0x0C`.
+9. **Overall Single-Cycle Performance:**
+   - `performance.png`: Shows each instruction retiring in exactly 1 clock cycle ($CPI = 1.0$).
 
 ---
 
-## Phase 1 — ALU Control Unit Implementation
+## 15. What is Incomplete (Known Limitations)
 
-**Date:** October 22, 2026
+Being honest and clear about limitations is essential in engineering evaluations:
 
-### 1. What Was Done Today
-
-- Designed and implemented the combinational **ALU Control Unit (`alu_control.v`)** in Verilog.
-- Mapped the 2-bit category selector (`alu_op`) alongside `funct3` (`instruction[14:12]`) and `funct7` (`instruction[31:25]`) to drive the 4-bit `control_alu` signal into the ALU.
-- Structured the decoding logic using explicit `if-else` trees with a safe default assignment at the top of the combinational block to prevent latch inference.
-
-### 2. How It Works
-
-In a two-level RISC-V control scheme, the Main Control Unit inspects the instruction `opcode` and sends a 2-bit `alu_op` category code to `alu_control`. The ALU Control Unit then resolves the exact 4-bit hardware operation:
-
-| `alu_op` | `funct3` | `funct7[5]` (`instruction[30]`) | Instruction Category / Target | Operation | `control_alu` |
-|:---:|:---:|:---:|---|---|:---:|
-| `2'b00` | *Any* | *Any* | `LW`, `SW` (Memory Address Offset) | ADD | `4'b0010` |
-| `2'b01` | *Any* | *Any* | `BEQ`, `BNE` (Branch Comparison) | SUB | `4'b0110` |
-| `2'b10` | `3'b000` | `1'b0` | `ADD` | ADD | `4'b0010` |
-| `2'b10` | `3'b000` | `1'b1` | `SUB` | SUB | `4'b0110` |
-| `2'b10` | `3'b111` | *Any* | `AND`, `ANDI` | AND | `4'b0000` |
-| `2'b10` | `3'b110` | *Any* | `OR`, `ORI` | OR | `4'b0001` |
-| `2'b10` | `3'b100` | *Any* | `XOR`, `XORI` | XOR | `4'b0100` |
-
-### 3. Current RTL (`rtl/alu_control.v`)
-
-```verilog
-module alu_control (
-    input  wire [1:0] alu_op,
-    input  wire [2:0] funct3,
-    input  wire [6:0] funct7,
-    output reg  [3:0] control_alu
-);
-
-    always @(*) begin
-        control_alu = 4'b0010;
-
-        if (alu_op == 2'b00) begin
-            control_alu = 4'b0010;
-        end
-        else if (alu_op == 2'b01) begin
-            control_alu = 4'b0110;
-        end
-        else if (alu_op == 2'b10) begin
-            if (funct3 == 3'b000) begin
-                if (funct7[5] == 1'b1) begin
-                    control_alu = 4'b0110;
-                end
-                else begin
-                    control_alu = 4'b0010;
-                end
-            end
-            else if (funct3 == 3'b111) begin
-                control_alu = 4'b0000;
-            end
-            else if (funct3 == 3'b110) begin
-                control_alu = 4'b0001;
-            end
-            else if (funct3 == 3'b100) begin
-                control_alu = 4'b0100;
-            end
-            else begin
-                control_alu = 4'b0010;
-            end
-        end
-        else begin
-            control_alu = 4'b0010;
-        end
-    end
-
-endmodule
-```
+1. **`ADDI` Immediate Bit-10 Bug in `alu_control.v`:**
+   - In `modules/alu_control.v`, line 19 checks `funct7[5]` (`instruction[30]`) whenever `alu_op == 2'b10` and `funct3 == 3'b000`.
+   - For R-type instructions (`ADD` vs `SUB`), this is correct.
+   - But for I-type `ADDI`, `funct7` does not exist—instruction bit `[30]` is actually immediate bit `10`!
+   - If you run an `ADDI` with a negative number or a value $\ge 1024$, bit 30 will be `1`, causing the processor to mistakenly execute a `SUB` instead of `ADD`. (This passed our tests because our test programs only used small positive numbers like `5`, `10`, and `42`).
+2. **Untaken Branches Unverified:**
+   - While `branch_unit.v` has code for `BNE` and fall-through, our test program only verified a taken `BEQ` branch.
+3. **Memory Size & Access Alignment:**
+   - Memory is 64 words (256 bytes) and only supports word-aligned 32-bit accesses (`LW` and `SW`). Byte or halfword operations (`LB`, `LH`, `SB`, `SH`) are not implemented.
+4. **J-Type Instructions (`JAL`):**
+   - The immediate generator decodes J-type formats, but `JAL` opcode `0x6F` is not decoded in `control_unit.v`.
 
 ---
 
-## Phase 1 — Instruction Memory Implementation
+## 16. Future Work: Transition to a 5-Stage Pipeline
 
-**Date:** October 23, 2026
+In **Phase II**, we will upgrade this verified single-cycle prototype into a classic 5-stage pipelined processor:
 
-### 1. What Was Done Today
-
-- Designed and implemented the **Instruction Memory (`instr_mem.v`)** module for the Instruction Fetch (`IF`) stage[cite: 1].
-- Configured a 64-word (32-bit wide) storage array (`reg [31:0] memory [0:63]`) with continuous asynchronous read access.
-- Implemented word-aligned addressing (`read_address[7:2]`) to map byte-addressed Program Counter (`PC`) values directly to 32-bit instruction entries[cite: 1].
-- Added an `initial` block utilizing `$readmemh("program.hex", memory)` to preload machine-code test programs during simulation.
-
-### 2. Design Choices & How It Works
-
-#### 1. Asynchronous Combinational Read
-During normal operation, Instruction Memory acts as a read-only lookup table. As soon as the Program Counter (`PC`) presents a new `read_address`, the corresponding 32-bit `instruction` word is driven onto the output bus without waiting for a clock edge[cite: 1].
-
-#### 2. Word-Aligned Indexing (`read_address[7:2]`)
-Because RISC-V memory is byte-addressed and every RV32I instruction is 4 bytes (32 bits) wide, sequential `PC` addresses increment by 4 (`0x00`, `0x04`, `0x08`, `0x0C`)[cite: 1]. Rather than wasting space declaring an array of individual bytes, `memory` is structured as an array of 32-bit words:
-- **`read_address[1:0]` (Byte Offset):** Discarded, as instructions are aligned on 4-byte boundaries.
-- **`read_address[7:2]` (Word Index):** Extracts the 6-bit word index ($2^6 = 64$ words), dividing the byte address by 4 in hardware with zero gate delay.
-
-### 3. Current RTL (`rtl/instr_mem.v`)
-
-```verilog
-module instr_mem (
-    input  wire [31:0] read_address,
-    output wire [31:0] instruction
-);
-
-    reg [31:0] memory;
-
-    initial begin
-        $readmemh("program.hex", memory);
-    end
-
-    assign instruction = memory[read_address[7:2]];
-
-endmodule
+```mermaid
+flowchart LR
+    IF["IF<br>Fetch"] --> REG1["IF/ID<br>Register"]
+    REG1 --> ID["ID<br>Decode"]
+    REG1 -.-> HAZ["Hazard Unit<br>(Stalls)"]
+    ID --> REG2["ID/EX<br>Register"]
+    REG2 --> EX["EX<br>Execute"]
+    REG3 -.-> FWD["Forwarding Unit<br>(Bypass Data)"]
+    FWD -.-> EX
+    EX --> REG3["EX/MEM<br>Register"]
+    REG3 --> MEM["MEM<br>Memory"]
+    MEM --> REG4["MEM/WB<br>Register"]
+    REG4 --> WB["WB<br>Writeback"]
 ```
+
+### Steps for Phase II:
+1. **Insert 4 Pipeline Registers:** Place registers between stages (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) to hold instructions, data, and control signals across clock cycles.
+2. **Add a Forwarding Unit:** Route values directly from `EX/MEM` or `MEM/WB` back to the ALU inputs, eliminating Read-After-Write (RAW) data hazard delays.
+3. **Add a Hazard Detection Unit:** Detect when an instruction right after a `LW` needs the loaded data (Load-Use hazard) and automatically insert a 1-cycle stall bubble.
+4. **Fix the `ADDI` Bit-10 Bug:** Separate R-type and I-type ALU decoding in `alu_control.v`.
+5. **Handle Branch Flush:** Clear speculatively fetched instructions if a branch is taken.
 
 ---
 
-## Remaining Roadmap & Required Modules
+## Summary of Markdown Files in This Project
 
-- [ ] **Program Counter (`pc.v`):** Synchronous 32-bit register with reset and next-PC (`PC + 4` or branch target) selection logic to complete the `IF` stage[cite: 1].
-- [ ] **Main Control Unit (`control_unit.v`):** Decode `opcode` (`instruction[6:0]`) to generate `reg_write`, `imm_src`, `alu_src`, `mem_write`, `result_src`, `branch`, and `alu_op`[cite: 1].
-- [ ] **Data Memory (`data_mem.v`):** Synchronous write / asynchronous read memory block for `LW` and `SW`[cite: 1].
-- [ ] **Pipeline Registers (`if_id`, `id_ex`, `ex_mem`, `mem_wb`):** Stage isolation registers to hold instruction data and control signals across clock cycles.
-- [ ] **Hazard Detection & Forwarding Unit:** Data forwarding muxes and stall/flush logic to resolve RAW (Read-After-Write) and control hazards.
+To keep everything clean and prevent confusion, this project contains only **two** documentation files:
+
+1. **`README.md` (This file):** The complete guide to understanding, compiling, simulating, and explaining the processor.
+2. **`docs/report.md`:** The concise, formal academic report structured with the 5 required sections: Abstract, Literature Review, Proposed Solution, Individual Contributions, and References.
