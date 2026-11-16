@@ -1,4 +1,4 @@
-`include "../include.vh"
+`include "./include.vh"
 
 module if_stage (
     input  wire        clk,
