@@ -1,3 +1,4 @@
+`include "./include.vh"
 module ex_stage (
     input  wire [31:0] p_out,
     input  wire [31:0] read_data1,
