@@ -1,3 +1,5 @@
+`include "../include.vh"
+
 module if_stage (
     input  wire        clk,
     input  wire        rst,
