@@ -26,6 +26,10 @@ This work represents **Phase I** of an ongoing two-phase computer architecture p
 
 ---
 
+
+#Video Section
+Google Drive Link-https://drive.google.com/drive/folders/1TgVbvNazCTD7CQuh_aLx0aYHpweBUVhe?usp=sharing
+
 ## 1. What This Project Is
 
 This project is a hardware implementation of a **32-bit RISC-V processor core** written from scratch in standard Verilog HDL. 
