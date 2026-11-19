@@ -6,6 +6,14 @@ This work represents **Phase I** of an ongoing two-phase computer architecture p
 
 ---
 
+## Prototype Video
+
+**[Watch the Phase I prototype video on Google Drive](https://drive.google.com/drive/folders/1uSRVT-m7kjx9ZaAxFc_7RNzCOR-aKLWm)** (4 min 51 s)
+
+The video covers the project idea, the team, the stage-partitioned datapath (Fig. 1), the key Verilog modules, a live `make test-arithmetic` run with its waveform, and the known limitations and Phase II plan.
+
+---
+
 ## Table of Contents
 1. [What This Project Is](#1-what-this-project-is)
 2. [Why We Are Building It](#2-why-we-are-building-it)
@@ -25,10 +33,6 @@ This work represents **Phase I** of an ongoing two-phase computer architecture p
 16. [Future Work: Transition to a 5-Stage Pipeline](#16-future-work-transition-to-a-5-stage-pipeline)
 
 ---
-
-
-#Video Section
-Google Drive Link-https://drive.google.com/drive/folders/1TgVbvNazCTD7CQuh_aLx0aYHpweBUVhe?usp=sharing
 
 ## 1. What This Project Is
 
