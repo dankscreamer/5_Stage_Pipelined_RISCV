@@ -3,3 +3,5 @@
 
 # Icarus Verilog compiled simulation output
 sim.out
+.build/
+__pycache__/

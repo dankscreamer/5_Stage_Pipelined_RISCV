@@ -1,5 +1,5 @@
 `include "include.vh"
-`include "include_Stage.vh"
+`include "include_stage.vh"
 
 
 module riscv_single_cycle (
@@ -38,6 +38,7 @@ module riscv_single_cycle (
 
     id_stage u_id_stage (
         .clk         (clk),
+        .rst         (rst),
         .instruction (instruction),
         .write_data  (write_data),
         .read_data1  (read_data1),
@@ -70,7 +71,7 @@ module riscv_single_cycle (
     mem_stage u_mem_stage (
         .clk        (clk),
         .mem_read   (mem_read),
-        .mem_write  (mem_write),
+        .mem_write  (mem_write && !rst),
         .address    (result_alu),
         .write_data (read_data2),
         .read_data  (read_data)

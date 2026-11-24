@@ -1,8 +1,12 @@
-# RISC-V Processor Project (Phase I: Single-Cycle Prototype)
+# RISC-V Processor Project: Phase 1 and Phase 2
 
-Welcome to the **RISC-V Processor Project**. This repository contains the complete design, Verilog implementation, and simulation environment for a **32-bit single-cycle RISC-V processor**.
+This repository contains a **32-bit single-cycle RISC-V subset processor** (`modules/riscv_single_cycle.v`) and a **simple five-stage pipeline** (`modules/riscv_pipeline.v`). The single-cycle core remains the Phase 1 comparison baseline.
 
-This work represents **Phase I** of an ongoing two-phase computer architecture project. The ultimate goal is to build a full **5-Stage Pipelined RISC-V Processor** in Phase II. In this phase, we have designed, implemented, and verified the core single-cycle execution engine.
+Phase 2 adds IF/ID, ID/EX, EX/MEM, and MEM/WB registers and EX-stage branch flushing. It deliberately has **no forwarding, hazard detection, or load-use stalls**: dependent instructions must be separated in software, with three NOPs when independent work is unavailable.
+
+Read the [Phase 2 architecture and verification guide](docs/phase2.md) and the [measured performance comparison](docs/phase2_performance.md). Run `make test` to verify both cores; `make sim-pipeline` verifies the pipeline branch example and writes its waveform. Outputs go under `.build/` without overwriting `program.hex`. Both test clocks are 10 ns; a higher achievable pipeline hardware frequency has not been measured.
+
+Sections 1–15 below describe the original **Phase 1 datapath and archived evidence**, with current build/reset corrections noted. The Phase 1 PDF/video assets remain historical.
 
 ---
 
@@ -30,7 +34,7 @@ The video covers the project idea, the team, the stage-partitioned datapath (Fig
 13. [How to Inspect Waveforms Using Surfer](#13-how-to-inspect-waveforms-using-surfer)
 14. [What We Have Successfully Tested](#14-what-we-have-successfully-tested)
 15. [What is Incomplete (Known Limitations)](#15-what-is-incomplete-known-limitations)
-16. [Future Work: Transition to a 5-Stage Pipeline](#16-future-work-transition-to-a-5-stage-pipeline)
+16. [Phase 2: Simple Five-Stage Pipeline](#16-phase-2-simple-five-stage-pipeline)
 
 ---
 
@@ -51,7 +55,7 @@ Building a pipelined processor directly from scratch is notoriously difficult be
 1. **Core Functionality:** Getting the math (ALU), memory access, registers, and branch logic to work correctly.
 2. **Pipelining Hazards:** Handling pipeline registers, data dependencies (hazard forwarding), and branch penalties.
 
-By first building a **modular single-cycle processor in Phase I**, we prove that every arithmetic operation, register read/write, memory access, and branch calculation works 100% correctly in hardware. Once this foundation is proven, transitioning to a pipelined core in Phase II becomes a clean, manageable engineering task of inserting pipeline registers and forwarding logic.
+Phase 1 establishes the single-cycle datapath and its simulation examples. Phase 2 adds pipeline boundaries while retaining software scheduling for data dependencies. Simulation coverage is limited to the tested cases; neither phase has a physical hardware timing result.
 
 ---
 
@@ -116,7 +120,7 @@ Every module in the [modules/](file:///Users/aditsingh/Desktop/mca_project/modul
 - **Purpose:** A 32-bit register that stores the memory address of the instruction currently being executed.
 - **Inputs:**
   - `clk` (Clock): The heartbeat of the system.
-  - `rst` (Reset): When high, resets the program counter back to address `0x00000000`.
+  - `rst` (Reset): When high at a rising clock edge, resets the program counter to `0x00000000`.
   - `p_nxt[31:0]` (Next PC): The address of the next instruction (either `PC + 4` or a branch target).
 - **Outputs:**
   - `p_out[31:0]` (Current PC): The active 32-bit instruction address.
@@ -290,7 +294,8 @@ Every module in the [modules/](file:///Users/aditsingh/Desktop/mca_project/modul
 - **`mem_stage.v`:** Houses `data_mem`.
 - **`wb_stage.v`:** Houses the writeback selection multiplexer.
 - **`riscv_single_cycle.v`:** Top-level module interconnecting the five stage wrappers combinationally.
-- **`tb_riscv.v`:** The simulation testbench. Generates clock (`10ns` period) and reset (`15ns` duration), dumps waveforms to `riscv_single_cycle.vcd`, and runs execution.
+- **`tb_riscv.v`:** The legacy Phase 1 waveform testbench. Generates a 10 ns clock and releases reset on a falling edge at 20 ns. `make sim` writes `.build/riscv_single_cycle.vcd` and finishes at 140 ns.
+- **`riscv_pipeline.v` / `tb_phase2.v`:** The Phase 2 pipeline and common self-checking verification harness; see [docs/phase2.md](docs/phase2.md).
 
 ---
 
@@ -346,7 +351,7 @@ For branch instructions, the ALU subtracts $a - b$. If $a == b$, the result is $
 
 ## 10. Supported Instructions
 
-The Phase I processor supports 10 core RV32I instructions:
+The original Phase I examples document these 10 RV32I instructions (ADDI has the limitation in Section 15). The shared decoder also selects AND/OR/XOR with immediate operands for ANDI/ORI/XORI; this does not imply full RV32I encoding validation or test coverage.
 
 | Instruction | Type | Syntax | Operation Performed | Verified? |
 |:---|:---:|:---|:---|:---:|
@@ -409,13 +414,17 @@ We use **Icarus Verilog (`iverilog`)** and the **`vvp`** runtime engine.
 
 ### Quick Commands via Makefile:
 ```bash
-# Run default simulation (Branch test)
+# Run the current program.hex on the Phase 1 core (currently the memory example)
 make sim
 
 # Run specific tests:
 make test-branch       # Runs the BEQ branch test
 make test-arithmetic   # Runs the ADD, SUB, AND, OR, XOR test
 make test-memory       # Runs the SW and LW test
+
+# Phase 2 verification and performance comparison:
+make test              # Both cores; checks results, PC order, and cycle counts
+make sim-pipeline      # Checked pipeline branch run and waveform
 
 # Clean up simulation output files:
 make clean
@@ -429,7 +438,7 @@ iverilog -o sim.out modules/tb_riscv.v
 # 2. Run simulation
 vvp sim.out
 ```
-When simulation runs, it generates the waveform file: `riscv_single_cycle.vcd`.
+The manual command writes `riscv_single_cycle.vcd`; `make sim` instead writes `.build/riscv_single_cycle.vcd`. Checked tests write `.build/phase2/<case>_<core>.vcd`, logs, and the comparison report. Test targets select their own images without overwriting `program.hex`. `make clean` removes `.build/` only.
 
 ---
 
@@ -497,47 +506,49 @@ Being honest and clear about limitations is essential in engineering evaluations
    - In `modules/alu_control.v`, line 19 checks `funct7[5]` (`instruction[30]`) whenever `alu_op == 2'b10` and `funct3 == 3'b000`.
    - For R-type instructions (`ADD` vs `SUB`), this is correct.
    - But for I-type `ADDI`, `funct7` does not exist—instruction bit `[30]` is actually immediate bit `10`!
-   - If you run an `ADDI` with a negative number or a value $\ge 1024$, bit 30 will be `1`, causing the processor to mistakenly execute a `SUB` instead of `ADD`. (This passed our tests because our test programs only used small positive numbers like `5`, `10`, and `42`).
-2. **Untaken Branches Unverified:**
-   - While `branch_unit.v` has code for `BNE` and fall-through, our test program only verified a taken `BEQ` branch.
+   - Precisely, signed immediates -1024 through -1 and 1024 through 2047 have immediate bit 10 set and incorrectly select SUB. Negative immediates -2048 through -1025 select ADD. This defect is retained in Phase 2; the supplied ADDI tests use small positive constants.
+2. **Branch Verification:**
+   - Original screenshots cover taken BEQ only. The current Phase 2 regression checks taken and untaken BEQ/BNE, backward branches, and suppression of both younger wrong-path instructions.
 3. **Memory Size & Access Alignment:**
-   - Memory is 64 words (256 bytes) and only supports word-aligned 32-bit accesses (`LW` and `SW`). Byte or halfword operations (`LB`, `LH`, `SB`, `SH`) are not implemented.
+   - Each memory is 64 words (256 bytes). Only 32-bit `LW`/`SW` semantics are implemented. Address bits outside `[7:2]` are ignored, so high and misaligned addresses alias instead of trapping. Byte/halfword operations and their encoding checks are not implemented.
 4. **J-Type Instructions (`JAL`):**
    - The immediate generator decodes J-type formats, but `JAL` opcode `0x6F` is not decoded in `control_unit.v`.
 
 ---
 
-## 16. Future Work: Transition to a 5-Stage Pipeline
+## 16. Phase 2: Simple Five-Stage Pipeline
 
-In **Phase II**, we will upgrade this verified single-cycle prototype into a classic 5-stage pipelined processor:
+The Phase 2 implementation is `modules/riscv_pipeline.v`. Four explicit register boundaries separate the stages:
 
 ```mermaid
 flowchart LR
     IF["IF<br>Fetch"] --> REG1["IF/ID<br>Register"]
     REG1 --> ID["ID<br>Decode"]
-    REG1 -.-> HAZ["Hazard Unit<br>(Stalls)"]
     ID --> REG2["ID/EX<br>Register"]
     REG2 --> EX["EX<br>Execute"]
-    REG3 -.-> FWD["Forwarding Unit<br>(Bypass Data)"]
-    FWD -.-> EX
     EX --> REG3["EX/MEM<br>Register"]
     REG3 --> MEM["MEM<br>Memory"]
     MEM --> REG4["MEM/WB<br>Register"]
     REG4 --> WB["WB<br>Writeback"]
 ```
 
-### Steps for Phase II:
-1. **Insert 4 Pipeline Registers:** Place registers between stages (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) to hold instructions, data, and control signals across clock cycles.
-2. **Add a Forwarding Unit:** Route values directly from `EX/MEM` or `MEM/WB` back to the ALU inputs, eliminating Read-After-Write (RAW) data hazard delays.
-3. **Add a Hazard Detection Unit:** Detect when an instruction right after a `LW` needs the loaded data (Load-Use hazard) and automatically insert a 1-cycle stall bubble.
-4. **Fix the `ADDI` Bit-10 Bug:** Separate R-type and I-type ALU decoding in `alu_control.v`.
-5. **Handle Branch Flush:** Clear speculatively fetched instructions if a branch is taken.
+Phase 2 carries operands, the destination register number, and control signals with each instruction. Taken branches resolve in EX and flush IF/ID and ID/EX, costing two cycles. Register and RAM writes are inhibited during reset.
+
+There is no forwarding, hazard detection, or automatic load-use stall. Programs use three intervening instructions between a register writer and its reader. The Phase 2 hex/assembly examples include explicit NOP spacing. The original unscheduled programs remain for the single-cycle core.
+
+Run `make test` or `make compare` to reproduce the checks and `.build/phase2/performance.md`. At the equal 10 ns simulation clock, 16 independent instructions take 16 baseline cycles versus 20 pipeline cycles; seven useful arithmetic instructions take 7 versus 14 cycles after software scheduling. Higher pipeline hardware frequency is a possible benefit, not a measured result here.
+
+See [docs/phase2.md](docs/phase2.md) for register contents, clock behavior, scheduling rules, test coverage, and timing assumptions, and [docs/phase2_performance.md](docs/phase2_performance.md) for the complete measured table.
 
 ---
 
 ## Summary of Markdown Files in This Project
 
-To keep everything clean and prevent confusion, this project contains only **two** documentation files:
+Current implementation documentation:
 
 1. **`README.md` (This file):** The complete guide to understanding, compiling, simulating, and explaining the processor.
 2. **`docs/report.md`:** The concise, formal academic report structured with the 5 required sections: Abstract, Literature Review, Proposed Solution, Individual Contributions, and References.
+3. **`docs/phase2.md`:** The implemented pipeline, scope, scheduling requirements, verification, and performance methodology.
+4. **`docs/phase2_performance.md`:** Reproducible cycle/time comparison for both cores.
+
+The `evidences/` READMEs and PDF/video documents preserve the original Phase 1 material.

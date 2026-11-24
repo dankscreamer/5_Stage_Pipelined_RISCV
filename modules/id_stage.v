@@ -2,6 +2,7 @@
 
 module id_stage (
     input  wire        clk,
+    input  wire        rst,
     input  wire [31:0] instruction,
     input  wire [31:0] write_data,
     output wire [31:0] read_data1,
@@ -32,7 +33,7 @@ module id_stage (
 
     reg_file u_reg_file (
         .clk          (clk),
-        .write_enable (reg_write),
+        .write_enable (reg_write && !rst),
         .rs1          (instruction[19:15]),
         .rs2          (instruction[24:20]),
         .rd           (instruction[11:7]),

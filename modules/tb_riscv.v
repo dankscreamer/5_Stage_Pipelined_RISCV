@@ -6,6 +6,7 @@ module tb_riscv;
 
     reg clk;
     reg rst;
+    reg [1023:0] wave_file;
 
     // Instantiate the top-level single-cycle RISC-V processor
     riscv_single_cycle uut (
@@ -18,15 +19,17 @@ module tb_riscv;
 
     initial begin
         // Open the VCD waveform file for GTKWave or Vivado
-        $dumpfile("riscv_single_cycle.vcd");
+        if (!$value$plusargs("VCD=%s", wave_file))
+            wave_file = "riscv_single_cycle.vcd";
+        $dumpfile(wave_file);
         $dumpvars(0, tb_riscv);
 
         // Initialize signals
         clk = 1'b0;
         rst = 1'b1;
         
-        // Hold reset active for 15ns
-        #15;
+        // Release reset on a falling edge, away from the PC sampling edge.
+        repeat (2) @(negedge clk);
         rst = 1'b0;
 
         // Run the simulation long enough for instructions in program.hex to execute

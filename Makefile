@@ -1,46 +1,44 @@
-# ==============================================================================
-# Simple Makefile for RISC-V Single-Cycle Processor Simulation
-# ==============================================================================
+# Phase 1 baseline and Phase 2 pipeline simulation (run from the repo root).
+IVERILOG ?= iverilog
+VVP ?= vvp
+PYTHON ?= python3
+PROGRAM ?= program.hex
+export IVERILOG VVP
 
-IVERILOG = iverilog
-VVP      = vvp
-TB_SRC   = modules/tb_riscv.v
-SIM_OUT  = sim.out
-VCD_FILE = riscv_single_cycle.vcd
+.PHONY: all sim sim-pipeline test test-pipeline compare test-branch test-arithmetic test-memory clean help
 
-.PHONY: all sim test-branch test-arithmetic test-memory clean help
-
-# Default target: compile and run current simulation
 all: sim
 
 sim:
-	@echo "--- Compiling and Running Simulation ---"
-	$(IVERILOG) -o $(SIM_OUT) $(TB_SRC)
-	$(VVP) $(SIM_OUT)
-	@echo "Simulation complete! Waveform saved to $(VCD_FILE)"
+	mkdir -p .build
+	$(IVERILOG) -g2012 -s tb_riscv -o .build/sim.out modules/tb_riscv.v
+	$(VVP) .build/sim.out +PROGRAM=$(PROGRAM) +VCD=.build/riscv_single_cycle.vcd
 
-# Run Test 1: Conditional Branch (BEQ)
+sim-pipeline:
+	$(PYTHON) tests/run_phase2.py --case branch --core pipeline
+
+test compare:
+	$(PYTHON) tests/run_phase2.py
+
+test-pipeline:
+	$(PYTHON) tests/run_phase2.py --core pipeline
+
 test-branch:
-	@echo "--- Running Test 1: Branch (BEQ Taken) ---"
-	cp program_branch.hex program.hex
-	$(IVERILOG) -o $(SIM_OUT) $(TB_SRC)
-	$(VVP) $(SIM_OUT)
+	$(PYTHON) tests/run_phase2.py --case branch --core single
 
-# Run Test 2: Arithmetic and Logic Instructions (ADD, SUB, AND, OR, XOR)
 test-arithmetic:
-	@echo "--- Running Test 2: Arithmetic & Logic ---"
-	cp program_arithmetic.hex program.hex
-	$(IVERILOG) -o $(SIM_OUT) $(TB_SRC)
-	$(VVP) $(SIM_OUT)
+	$(PYTHON) tests/run_phase2.py --case arithmetic --core single
 
-# Run Test 3: Data Memory Operations (SW and LW)
 test-memory:
-	@echo "--- Running Test 3: Memory Store & Load ---"
-	cp program_memory.hex program.hex
-	$(IVERILOG) -o $(SIM_OUT) $(TB_SRC)
-	$(VVP) $(SIM_OUT)
+	$(PYTHON) tests/run_phase2.py --case memory --core single
 
-# Remove temporary simulation files
 clean:
-	@echo "--- Cleaning up simulation files ---"
-	rm -f $(SIM_OUT) $(VCD_FILE)
+	rm -rf .build
+
+help:
+	@echo "make sim              Phase 1 waveform (PROGRAM=file.hex optional)"
+	@echo "make sim-pipeline     Verify Phase 2 branch program and save waveform"
+	@echo "make test / compare   Verify both cores and report measured cycles/time"
+	@echo "make test-pipeline    Run only the Phase 2 checks"
+	@echo "make test-branch / test-arithmetic / test-memory   Phase 1 checks"
+	@echo "Outputs: .build/ (program.hex and archived waveforms are preserved)"

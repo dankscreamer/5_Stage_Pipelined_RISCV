@@ -1,5 +1,7 @@
 # Phase I Academic Project Report: Design and Verification of a Single-Cycle RV32I Processor Prototype
 
+> Historical Phase 1 report. The implemented Phase 2 scope differs from the original roadmap below: it uses software scheduling and has no forwarding, hazard detection, or load-use stalls. See [phase2.md](phase2.md) and [phase2_performance.md](phase2_performance.md) for current behavior and reproducible results.
+
 **Course / Project:** MCA Computer Architecture Laboratory  
 **Team Members:** [Student Name 1], [Student Name 2], [Student Name 3] *(Input Required: Names & Roll Numbers)*  
 **Institution:** Department of Computer Applications *(Input Required: Institution Name)*  
